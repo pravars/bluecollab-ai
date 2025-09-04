@@ -2,6 +2,7 @@
   "name": "dwello",
   "version": "1.0.0",
   "description": "Dwello - AI Service Request Platform",
+  "type": "module",
   "private": true,
   "dependencies": {
     "lucide-react": "^0.263.1",
