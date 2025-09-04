@@ -5,11 +5,13 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "clsx": "^2.0.0",
     "lucide-react": "^0.263.1",
+    "mongoose": "^8.18.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.15.0",
-    "clsx": "^2.0.0",
     "tailwind-merge": "^1.14.0"
   },
   "devDependencies": {
@@ -17,18 +19,23 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
-    "vite": "6.3.5",
-    "typescript": "^5.0.0",
-    "tailwindcss": "^3.3.0",
     "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0"
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0",
+    "vite": "6.3.5"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:setup": "./scripts/setup-mongodb.sh",
+    "db:start": "docker-compose -f docker-compose.mongodb.yml up -d",
+    "db:stop": "docker-compose -f docker-compose.mongodb.yml down",
+    "db:logs": "docker-compose -f docker-compose.mongodb.yml logs -f",
+    "db:reset": "docker-compose -f docker-compose.mongodb.yml down -v && ./scripts/setup-mongodb.sh"
   },
   "keywords": [
     "dwello",
