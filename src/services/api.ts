@@ -3,6 +3,9 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://api.dwello.com' 
   : 'http://localhost:3002';
 
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 export interface User {
   _id: string;
   email: string;
@@ -39,6 +42,8 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
+      console.log('Making API request to:', url);
+      console.log('Request options:', options);
       
       const response = await fetch(url, {
         headers: {
@@ -47,6 +52,9 @@ class ApiService {
         },
         ...options,
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
 
       // Check if response has content before trying to parse JSON
       const contentType = response.headers.get('content-type');
@@ -85,9 +93,20 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('API request failed:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error details:', error);
+      
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        errorMessage = 'Network error: Unable to connect to server. Please check if the backend is running.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: errorMessage,
+        message: 'Failed to communicate with server'
       };
     }
   }
