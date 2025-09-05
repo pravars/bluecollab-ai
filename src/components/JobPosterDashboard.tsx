@@ -14,6 +14,7 @@ import {
 import JobDetails from './JobDetails';
 import JobPostingForm from './JobPostingForm';
 import BidManagementModal from './BidManagementModal';
+import JobProgressView from './JobProgressView';
 import apiService from '../services/api';
 import { Job } from '../models/Job';
 
@@ -30,6 +31,9 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const [currentView, setCurrentView] = useState<'dashboard' | 'job-details' | 'bid-management' | 'job-progress' | 'post-job'>('dashboard');
   const [bidManagementOpen, setBidManagementOpen] = useState(false);
   const [selectedJobForBids, setSelectedJobForBids] = useState<Job | null>(null);
+  const [progressViewOpen, setProgressViewOpen] = useState(false);
+  const [selectedJobForProgress, setSelectedJobForProgress] = useState<Job | null>(null);
+  const [selectedBidForProgress, setSelectedBidForProgress] = useState<any>(null);
 
   // Fetch user's jobs
   useEffect(() => {
@@ -88,6 +92,16 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
         ? { ...job, status }
         : job
     ));
+  };
+
+  const handleViewProgress = (job: Job) => {
+    // Find the accepted bid for this job
+    const acceptedBid = job.bids?.find((bid: any) => bid.status === 'accepted');
+    if (acceptedBid) {
+      setSelectedJobForProgress(job);
+      setSelectedBidForProgress(acceptedBid);
+      setProgressViewOpen(true);
+    }
   };
 
   const handleJobSelect = (job: Job) => {
@@ -357,12 +371,12 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedJob(job);
-                            setCurrentView('job-progress');
+                            handleViewProgress(job);
                           }}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
                         >
-                          View Progress
+                          <Eye className="w-4 h-4" />
+                          <span>View Progress</span>
                         </button>
                       )}
                     </div>
@@ -431,6 +445,21 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
           onBidAccepted={handleBidAccepted}
           onBidRejected={handleBidRejected}
           onJobStatusUpdate={handleJobStatusUpdate}
+        />
+      )}
+
+      {/* Job Progress View Modal */}
+      {selectedJobForProgress && selectedBidForProgress && (
+        <JobProgressView
+          job={selectedJobForProgress}
+          bid={selectedBidForProgress}
+          isOpen={progressViewOpen}
+          onClose={() => {
+            setProgressViewOpen(false);
+            setSelectedJobForProgress(null);
+            setSelectedBidForProgress(null);
+          }}
+          onStatusUpdate={handleJobStatusUpdate}
         />
       )}
     </div>
