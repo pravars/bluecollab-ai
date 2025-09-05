@@ -5,6 +5,7 @@ import { LoadingFallback } from './components/LoadingFallback';
 import UserTypeSelection from './components/UserTypeSelection';
 import ServiceSeekerSignIn from './components/ServiceSeekerSignIn';
 import ServiceProviderSignIn from './components/ServiceProviderSignIn';
+import AIEnhancedChatInterface from './components/AIEnhancedChatInterface';
 
 // Lazy load the dashboard components
 const JobPosterDashboard = React.lazy(() => import('./components/JobPosterDashboard'));
@@ -53,7 +54,7 @@ export default function App() {
       }
     }
   }, []);
-  const [currentView, setCurrentView] = useState<'home' | 'chat' | 'user-selection' | 'seeker-signin' | 'provider-signin' | 'job-dashboard' | 'provider-dashboard'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'chat' | 'ai-chat' | 'user-selection' | 'seeker-signin' | 'provider-signin' | 'job-dashboard' | 'provider-dashboard'>('home');
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -428,6 +429,19 @@ export default function App() {
     );
   }
 
+  if (currentView === 'ai-chat') {
+    return (
+      <AIEnhancedChatInterface 
+        onBack={() => setCurrentView('home')}
+        onJobCreated={(jobDetails) => {
+          console.log('Job created:', jobDetails);
+          // Here you can integrate with your job posting system
+          setCurrentView('job-dashboard');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -617,13 +631,23 @@ export default function App() {
 
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <button 
-                    onClick={() => setCurrentView('chat')}
-                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3 shadow-lg"
-                  >
-                    <MessageCircle className="w-6 h-6" />
-                    <span>Try AI Assistant</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button 
+                      onClick={() => setCurrentView('chat')}
+                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3 shadow-lg"
+                    >
+                      <MessageCircle className="w-6 h-6" />
+                      <span>Try AI Assistant</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setCurrentView('ai-chat')}
+                      className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3 shadow-lg"
+                    >
+                      <Briefcase className="w-6 h-6" />
+                      <span>AI Job Creator</span>
+                    </button>
+                  </div>
                   
                   {!isSignedIn && (
                     <button 
@@ -635,15 +659,6 @@ export default function App() {
                     </button>
                   )}
 
-                  {isSignedIn && userType === 'seeker' && (
-                    <button 
-                      onClick={() => setCurrentView('job-dashboard')}
-                      className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3 shadow-lg"
-                    >
-                      <Briefcase className="w-6 h-6" />
-                      <span>My Jobs</span>
-                    </button>
-                  )}
                   
                   {isSignedIn && userType === 'provider' && (
                     <button 
