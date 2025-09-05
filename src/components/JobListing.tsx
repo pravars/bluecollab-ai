@@ -22,9 +22,12 @@ const JobListing: React.FC<JobListingProps> = ({ onJobSelect }) => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
+      console.log('JobListing: Fetching jobs with filters:', filters);
       const response = await apiService.getJobs(filters);
+      console.log('JobListing: API response:', response);
       if (response.success) {
         setJobs(response.data || []);
+        console.log('JobListing: Jobs set to:', response.data || []);
       } else {
         setError(response.error || 'Failed to fetch jobs');
       }
