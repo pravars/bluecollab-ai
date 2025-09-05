@@ -408,7 +408,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedJobId(job._id!);
+                            setSelectedJob(job);
                             setCurrentView('job-progress');
                           }}
                           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
