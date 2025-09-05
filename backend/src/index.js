@@ -4,12 +4,18 @@ import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import Stripe from 'stripe';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_...', {
+  apiVersion: '2023-10-16',
+});
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:dwello123@localhost:27018/dwello?authSource=admin';
@@ -932,6 +938,361 @@ app.put('/api/bids/:bidId/accept', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to accept bid'
+    });
+  }
+});
+
+// ==================== PAYMENT ENDPOINTS ====================
+
+// Create Payment Intent
+app.post('/api/payments/create-payment-intent', authenticateToken, async (req, res) => {
+  try {
+    const { amount, currency = 'usd', metadata = {} } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
+      metadata: {
+        ...metadata,
+        userId: req.user.userId,
+        timestamp: new Date().toISOString()
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret
+    });
+  } catch (error) {
+    console.error('Error creating payment intent:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create payment intent'
+    });
+  }
+});
+
+// Create Customer
+app.post('/api/payments/create-customer', authenticateToken, async (req, res) => {
+  try {
+    const { email, name, metadata = {} } = req.body;
+
+    const customer = await stripe.customers.create({
+      email,
+      name,
+      metadata: {
+        ...metadata,
+        userId: req.user.userId
+      }
+    });
+
+    res.json({
+      success: true,
+      customer
+    });
+  } catch (error) {
+    console.error('Error creating customer:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create customer'
+    });
+  }
+});
+
+// Create Setup Intent
+app.post('/api/payments/create-setup-intent', authenticateToken, async (req, res) => {
+  try {
+    const { customerId } = req.body;
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+    });
+
+    res.json({
+      success: true,
+      clientSecret: setupIntent.client_secret
+    });
+  } catch (error) {
+    console.error('Error creating setup intent:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create setup intent'
+    });
+  }
+});
+
+// Attach Payment Method
+app.post('/api/payments/attach-payment-method', authenticateToken, async (req, res) => {
+  try {
+    const { paymentMethodId, customerId } = req.body;
+
+    const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId,
+    });
+
+    res.json({
+      success: true,
+      paymentMethod
+    });
+  } catch (error) {
+    console.error('Error attaching payment method:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to attach payment method'
+    });
+  }
+});
+
+// Get Payment Methods
+app.get('/api/payments/payment-methods/:customerId', authenticateToken, async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card',
+    });
+
+    res.json({
+      success: true,
+      paymentMethods: paymentMethods.data
+    });
+  } catch (error) {
+    console.error('Error fetching payment methods:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch payment methods'
+    });
+  }
+});
+
+// Create Escrow Account (Connect Account)
+app.post('/api/payments/create-escrow-account', authenticateToken, async (req, res) => {
+  try {
+    const { email, country, businessType, firstName, lastName, companyName } = req.body;
+
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country,
+      email,
+      business_type: businessType,
+      individual: {
+        first_name: firstName,
+        last_name: lastName,
+      },
+      business_profile: {
+        name: companyName || `${firstName} ${lastName}`,
+        product_description: 'Home maintenance services',
+      },
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+
+    // Store account info in database
+    await db.collection('escrow_accounts').insertOne({
+      userId: req.user.userId,
+      stripeAccountId: account.id,
+      accountStatus: 'pending',
+      capabilities: account.capabilities,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      account
+    });
+  } catch (error) {
+    console.error('Error creating escrow account:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create escrow account'
+    });
+  }
+});
+
+// Release Escrow
+app.post('/api/payments/release-escrow', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId, amount, reason } = req.body;
+
+    // Get payment details
+    const payment = await db.collection('payments').findOne({ _id: new ObjectId(paymentId) });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
+      });
+    }
+
+    // Get job and bid details
+    const job = await db.collection('jobs').findOne({ _id: new ObjectId(payment.jobId) });
+    const bid = await db.collection('bids').findOne({ _id: new ObjectId(payment.bidId) });
+
+    // Create transfer to service provider
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      destination: bid.stripeAccountId, // Service provider's Stripe account
+      transfer_group: paymentId,
+      metadata: {
+        jobId: payment.jobId,
+        bidId: payment.bidId,
+        reason: reason
+      }
+    });
+
+    // Update payment status
+    await db.collection('payments').updateOne(
+      { _id: new ObjectId(paymentId) },
+      {
+        $set: {
+          escrowStatus: 'released',
+          escrowReleaseDate: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      transfer,
+      message: 'Escrow released successfully'
+    });
+  } catch (error) {
+    console.error('Error releasing escrow:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to release escrow'
+    });
+  }
+});
+
+// Refund Payment
+app.post('/api/payments/refund-payment', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId, amount, reason } = req.body;
+
+    // Get payment details
+    const payment = await db.collection('payments').findOne({ _id: new ObjectId(paymentId) });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
+      });
+    }
+
+    // Create refund
+    const refund = await stripe.refunds.create({
+      payment_intent: payment.stripePaymentIntentId,
+      amount: Math.round(amount * 100),
+      reason: 'requested_by_customer',
+      metadata: {
+        jobId: payment.jobId,
+        bidId: payment.bidId,
+        reason: reason
+      }
+    });
+
+    // Update payment status
+    await db.collection('payments').updateOne(
+      { _id: new ObjectId(paymentId) },
+      {
+        $set: {
+          status: 'refunded',
+          escrowStatus: 'refunded',
+          refundReason: reason,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      refund,
+      message: 'Payment refunded successfully'
+    });
+  } catch (error) {
+    console.error('Error refunding payment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refund payment'
+    });
+  }
+});
+
+// Create Dispute
+app.post('/api/payments/create-dispute', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId, reason, description, evidence = [] } = req.body;
+
+    // Get payment details
+    const payment = await db.collection('payments').findOne({ _id: new ObjectId(paymentId) });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
+      });
+    }
+
+    // Update payment status to disputed
+    await db.collection('payments').updateOne(
+      { _id: new ObjectId(paymentId) },
+      {
+        $set: {
+          status: 'disputed',
+          escrowStatus: 'disputed',
+          disputeReason: reason,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    // In a real implementation, you would create a dispute case
+    // For now, we'll just update the database
+    res.json({
+      success: true,
+      message: 'Dispute created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating dispute:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create dispute'
+    });
+  }
+});
+
+// Get Payment Status
+app.get('/api/payments/status/:paymentId', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await db.collection('payments').findOne({ _id: new ObjectId(paymentId) });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      payment
+    });
+  } catch (error) {
+    console.error('Error fetching payment status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch payment status'
     });
   }
 });

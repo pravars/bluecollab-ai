@@ -9,12 +9,16 @@ import {
   MapPin,
   Plus,
   Eye,
-  Settings
+  Settings,
+  Shield,
+  X
 } from 'lucide-react';
 import JobDetails from './JobDetails';
 import JobPostingForm from './JobPostingForm';
 import BidManagementModal from './BidManagementModal';
 import JobProgressView from './JobProgressView';
+import PaymentModal from './PaymentModal';
+import EscrowManagement from './EscrowManagement';
 import apiService from '../services/api';
 import { Job } from '../models/Job';
 
@@ -34,6 +38,11 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const [progressViewOpen, setProgressViewOpen] = useState(false);
   const [selectedJobForProgress, setSelectedJobForProgress] = useState<Job | null>(null);
   const [selectedBidForProgress, setSelectedBidForProgress] = useState<any>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedJobForPayment, setSelectedJobForPayment] = useState<Job | null>(null);
+  const [selectedBidForPayment, setSelectedBidForPayment] = useState<any>(null);
+  const [escrowModalOpen, setEscrowModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
   // Fetch user's jobs
   useEffect(() => {
@@ -102,6 +111,38 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
       setSelectedBidForProgress(acceptedBid);
       setProgressViewOpen(true);
     }
+  };
+
+  const handleMakePayment = (job: Job, bid: any) => {
+    setSelectedJobForPayment(job);
+    setSelectedBidForPayment(bid);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (payment: any) => {
+    // Update job status to paid
+    setJobs(prev => prev.map(job => 
+      job._id === payment.jobId 
+        ? { ...job, status: 'paid', payment }
+        : job
+    ));
+    setPaymentModalOpen(false);
+    setSelectedJobForPayment(null);
+    setSelectedBidForPayment(null);
+  };
+
+  const handleManageEscrow = (payment: any) => {
+    setSelectedPayment(payment);
+    setEscrowModalOpen(true);
+  };
+
+  const handleEscrowStatusUpdate = (paymentId: string, status: string) => {
+    // Update payment status in jobs
+    setJobs(prev => prev.map(job => 
+      job.payment?._id === paymentId 
+        ? { ...job, payment: { ...job.payment, escrowStatus: status } }
+        : job
+    ));
   };
 
   const handleJobSelect = (job: Job) => {
@@ -379,6 +420,33 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                           <span>View Progress</span>
                         </button>
                       )}
+                      {job.status === 'accepted' && !job.payment && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const acceptedBid = job.bids?.find((bid: any) => bid.status === 'accepted');
+                            if (acceptedBid) {
+                              handleMakePayment(job, acceptedBid);
+                            }
+                          }}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          <span>Make Payment</span>
+                        </button>
+                      )}
+                      {job.payment && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleManageEscrow(job.payment);
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                        >
+                          <Shield className="w-4 h-4" />
+                          <span>Manage Escrow</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -461,6 +529,51 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
           }}
           onStatusUpdate={handleJobStatusUpdate}
         />
+      )}
+
+      {/* Payment Modal */}
+      {selectedJobForPayment && selectedBidForPayment && (
+        <PaymentModal
+          job={selectedJobForPayment}
+          bid={selectedBidForPayment}
+          isOpen={paymentModalOpen}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedJobForPayment(null);
+            setSelectedBidForPayment(null);
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* Escrow Management Modal */}
+      {selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Escrow Management</h2>
+                <button
+                  onClick={() => {
+                    setEscrowModalOpen(false);
+                    setSelectedPayment(null);
+                  }}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <EscrowManagement
+                payment={selectedPayment}
+                job={selectedJobForPayment || {}}
+                bid={selectedBidForPayment || {}}
+                onStatusUpdate={handleEscrowStatusUpdate}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
