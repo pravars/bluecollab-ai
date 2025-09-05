@@ -1,12 +1,10 @@
 import React, { useState, Suspense } from 'react';
-import { MessageCircle, CheckCircle, Briefcase, Search, MapPin, Star, Shield, Clock, Phone, Users, Award, ArrowRight, Menu, X, Home, DollarSign, Building, Database } from 'lucide-react';
+import { MessageCircle, CheckCircle, Briefcase, Search, MapPin, Star, Shield, Clock, Phone, Users, Award, ArrowRight, Menu, X, Home, DollarSign, Building } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingFallback } from './components/LoadingFallback';
 import UserTypeSelection from './components/UserTypeSelection';
 import ServiceSeekerSignIn from './components/ServiceSeekerSignIn';
 import ServiceProviderSignIn from './components/ServiceProviderSignIn';
-import { DatabaseProvider } from './contexts/DatabaseContext';
-import DatabaseDashboard from './components/DatabaseDashboard';
 
 // Lazy load the dashboard components
 const JobPosterDashboard = React.lazy(() => import('./components/JobPosterDashboard'));
@@ -35,12 +33,33 @@ export default function App() {
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);
-  const [currentView, setCurrentView] = useState<'home' | 'chat' | 'user-selection' | 'seeker-signin' | 'provider-signin' | 'job-dashboard' | 'provider-dashboard' | 'database'>('home');
+
+  // Load user data from localStorage on component mount
+  React.useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedUser && storedToken) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsSignedIn(true);
+        setUserType(userData.userType === 'homeowner' ? 'seeker' : 'provider');
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        // Clear invalid data
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+  }, []);
+  const [currentView, setCurrentView] = useState<'home' | 'chat' | 'user-selection' | 'seeker-signin' | 'provider-signin' | 'job-dashboard' | 'provider-dashboard'>('home');
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userType, setUserType] = useState<'seeker' | 'provider' | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -200,16 +219,17 @@ export default function App() {
     }
   };
 
-  const handleSignIn = (user: any, token: string, type?: 'seeker' | 'provider') => {
+  const handleSignIn = (userData: any, token: string, type?: 'seeker' | 'provider') => {
     setIsLoading(true);
     setError(null);
     
     // Store user data and token
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', token);
     
+    setUser(userData);
     setIsSignedIn(true);
-    setUserType(type || (user.userType === 'homeowner' ? 'seeker' : 'provider'));
+    setUserType(type || (userData.userType === 'homeowner' ? 'seeker' : 'provider'));
     setCurrentView('home');
     setIsLoading(false);
   };
@@ -220,6 +240,7 @@ export default function App() {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     
+    setUser(null);
     setIsSignedIn(false);
     setUserType(null);
     setCurrentView('home');
@@ -289,33 +310,6 @@ export default function App() {
     );
   }
 
-  if (currentView === 'database') {
-    return (
-      <ErrorBoundary>
-        <DatabaseProvider>
-          <div className="min-h-screen bg-gray-50">
-            <header className="bg-white shadow-sm border-b">
-              <div className="container mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Database className="w-8 h-8 text-blue-600" />
-                    <h1 className="text-2xl font-bold text-gray-900">Database Dashboard</h1>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('home')}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                  >
-                    ← Back to Home
-                  </button>
-                </div>
-              </div>
-            </header>
-            <DatabaseDashboard />
-          </div>
-        </DatabaseProvider>
-      </ErrorBoundary>
-    );
-  }
 
   if (currentView === 'user-selection') {
     return (
@@ -454,19 +448,12 @@ export default function App() {
                 <a href="#services" className="text-gray-700 hover:text-blue-600 transition-colors">Services</a>
                 <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">How It Works</a>
                 <a href="#testimonials" className="text-gray-700 hover:text-blue-600 transition-colors">Reviews</a>
-                <button 
-                  onClick={() => setCurrentView('database')}
-                  className="text-gray-700 hover:text-blue-600 transition-colors flex items-center space-x-1"
-                >
-                  <Database className="w-4 h-4" />
-                  <span>Database</span>
-                </button>
               </nav>
               
               {isSignedIn ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-600">
-                    Welcome, {userType === 'seeker' ? 'Homeowner' : 'Provider'}!
+                    Welcome, {user ? `${user.firstName} ${user.lastName}` : (userType === 'seeker' ? 'Homeowner' : 'Provider')}!
                   </span>
                   {userType === 'seeker' && (
                     <button 
