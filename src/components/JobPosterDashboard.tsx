@@ -12,8 +12,6 @@ import {
   Settings
 } from 'lucide-react';
 import JobDetails from './JobDetails';
-import BidManagement from './BidManagement-clean';
-import JobProgress from './JobProgress';
 import JobPostingForm from './JobPostingForm';
 import BidManagementModal from './BidManagementModal';
 import apiService from '../services/api';
@@ -136,55 +134,6 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
     );
   }
 
-  if (currentView === 'bid-management' && selectedJobId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setCurrentView('dashboard')}
-                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                <span>← Back to Dashboard</span>
-              </button>
-            </div>
-            <div className="bg-white rounded-2xl shadow-lg mb-6">
-              <div className="p-6 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-2xl">
-                <h1 className="text-2xl font-bold">Manage Bids - {jobs.find(job => job._id === selectedJobId)?.title}</h1>
-              </div>
-            </div>
-            <BidManagement jobId={selectedJobId} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentView === 'job-progress' && selectedJobId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setCurrentView('dashboard')}
-                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                <span>← Back to Dashboard</span>
-              </button>
-            </div>
-            <div className="bg-white rounded-2xl shadow-lg mb-6">
-              <div className="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-2xl">
-                <h1 className="text-2xl font-bold">Job Progress - {jobs.find(job => job._id === selectedJobId)?.title}</h1>
-              </div>
-            </div>
-            <JobProgress jobId={selectedJobId} />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (currentView === 'post-job') {
     return (
