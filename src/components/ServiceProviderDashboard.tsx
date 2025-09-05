@@ -8,10 +8,12 @@ import {
   Users, 
   Star,
   Eye,
-  Briefcase
+  Briefcase,
+  Settings
 } from 'lucide-react';
 import JobListing from './JobListing';
 import JobDetails from './JobDetails';
+import WorkProgressModal from './WorkProgressModal';
 import apiService from '../services/api';
 import { Job, Bid } from '../models/Job';
 
@@ -26,6 +28,9 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentView, setCurrentView] = useState<'dashboard' | 'browse-jobs' | 'job-details' | 'my-bids'>('dashboard');
+  const [workProgressOpen, setWorkProgressOpen] = useState(false);
+  const [selectedJobForProgress, setSelectedJobForProgress] = useState<Job | null>(null);
+  const [selectedBidForProgress, setSelectedBidForProgress] = useState<Bid | null>(null);
 
   useEffect(() => {
     fetchMyBids();
@@ -56,6 +61,21 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
   const handleBidSubmitted = (bid: Bid) => {
     // Refresh my bids list
     fetchMyBids();
+  };
+
+  const handleWorkProgress = (job: Job, bid: Bid) => {
+    setSelectedJobForProgress(job);
+    setSelectedBidForProgress(bid);
+    setWorkProgressOpen(true);
+  };
+
+  const handleJobStatusUpdate = (jobId: string, status: string) => {
+    // Update the job status in the bids list
+    setMyBids(prev => prev.map(bid => 
+      bid.job?._id === jobId 
+        ? { ...bid, job: { ...bid.job!, status } }
+        : bid
+    ));
   };
 
   const getBidStatusColor = (status: string) => {
@@ -192,15 +212,26 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getBidStatusColor(bid.status)}`}>
                               {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
                             </span>
-                            <button
-                              onClick={() => {
-                                setSelectedJob(bid.job);
-                                setCurrentView('job-details');
-                              }}
-                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-                            >
-                              View Job
-                            </button>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedJob(bid.job);
+                                  setCurrentView('job-details');
+                                }}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                              >
+                                View Job
+                              </button>
+                              {bid.status === 'accepted' && bid.job && (
+                                <button
+                                  onClick={() => handleWorkProgress(bid.job!, bid)}
+                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                                >
+                                  <Settings className="w-4 h-4" />
+                                  <span>Work Progress</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                         {bid.description && (
@@ -370,6 +401,15 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{bid.job?.title}</h4>
                           <p className="text-sm text-gray-600 mt-1">My bid: ${bid.amount} • {bid.timeline}</p>
+                          {bid.status === 'accepted' && bid.job && (
+                            <button
+                              onClick={() => handleWorkProgress(bid.job!, bid)}
+                              className="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-medium transition-colors flex items-center space-x-1"
+                            >
+                              <Settings className="w-3 h-3" />
+                              <span>Work Progress</span>
+                            </button>
+                          )}
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBidStatusColor(bid.status)}`}>
                           {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
@@ -391,6 +431,21 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
           </div>
         </div>
       </div>
+
+      {/* Work Progress Modal */}
+      {selectedJobForProgress && selectedBidForProgress && (
+        <WorkProgressModal
+          job={selectedJobForProgress}
+          bid={selectedBidForProgress}
+          isOpen={workProgressOpen}
+          onClose={() => {
+            setWorkProgressOpen(false);
+            setSelectedJobForProgress(null);
+            setSelectedBidForProgress(null);
+          }}
+          onStatusUpdate={handleJobStatusUpdate}
+        />
+      )}
     </div>
   );
 }
