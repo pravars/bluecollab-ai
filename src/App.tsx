@@ -40,9 +40,12 @@ export default function App() {
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
     
+    console.log('Loading user from localStorage:', storedUser);
+    
     if (storedUser && storedToken) {
       try {
         const userData = JSON.parse(storedUser);
+        console.log('Parsed user data:', userData);
         setUser(userData);
         setIsSignedIn(true);
         setUserType(userData.userType === 'homeowner' ? 'seeker' : 'provider');

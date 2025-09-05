@@ -92,6 +92,7 @@ const JobPostingForm: React.FC<JobPostingFormProps> = ({ userId, onJobPosted, on
         postedBy: userId
       };
       console.log('Creating job with data:', jobData);
+      console.log('JobPostingForm userId prop:', userId);
       const response = await apiService.createJob(jobData);
       console.log('Job creation response:', response);
 
