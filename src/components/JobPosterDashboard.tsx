@@ -8,12 +8,14 @@ import {
   Calendar,
   MapPin,
   Plus,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import JobDetails from './JobDetails';
 import BidManagement from './BidManagement-clean';
 import JobProgress from './JobProgress';
 import JobPostingForm from './JobPostingForm';
+import BidManagementModal from './BidManagementModal';
 import apiService from '../services/api';
 import { Job } from '../models/Job';
 
@@ -28,6 +30,8 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentView, setCurrentView] = useState<'dashboard' | 'job-details' | 'bid-management' | 'job-progress' | 'post-job'>('dashboard');
+  const [bidManagementOpen, setBidManagementOpen] = useState(false);
+  const [selectedJobForBids, setSelectedJobForBids] = useState<Job | null>(null);
 
   // Fetch user's jobs
   useEffect(() => {
@@ -58,6 +62,34 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const handleJobPosted = (newJob: Job) => {
     setJobs(prev => [newJob, ...prev]);
     setCurrentView('dashboard');
+  };
+
+  const handleManageBids = (job: Job) => {
+    setSelectedJobForBids(job);
+    setBidManagementOpen(true);
+  };
+
+  const handleBidAccepted = (bidId: string) => {
+    // Update the job in the jobs list to reflect the accepted bid
+    setJobs(prev => prev.map(job => 
+      job._id === selectedJobForBids?._id 
+        ? { ...job, status: 'in_progress', acceptedBid: bidId }
+        : job
+    ));
+    setBidManagementOpen(false);
+  };
+
+  const handleBidRejected = (bidId: string) => {
+    // Refresh jobs to get updated bid statuses
+    fetchUserJobs();
+  };
+
+  const handleJobStatusUpdate = (jobId: string, status: string) => {
+    setJobs(prev => prev.map(job => 
+      job._id === jobId 
+        ? { ...job, status }
+        : job
+    ));
   };
 
   const handleJobSelect = (job: Job) => {
@@ -365,12 +397,12 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedJobId(job._id!);
-                          setCurrentView('bid-management');
+                          handleManageBids(job);
                         }}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
                       >
-                        Manage Bids ({job.bids?.length || 0})
+                        <Settings className="w-4 h-4" />
+                        <span>Manage Bids ({Array.isArray(job.bids) ? job.bids.length : 0})</span>
                       </button>
                       {job.status === 'in_progress' && (
                         <button 
@@ -437,6 +469,21 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
           </div>
         </div>
       </div>
+
+      {/* Bid Management Modal */}
+      {selectedJobForBids && (
+        <BidManagementModal
+          job={selectedJobForBids}
+          isOpen={bidManagementOpen}
+          onClose={() => {
+            setBidManagementOpen(false);
+            setSelectedJobForBids(null);
+          }}
+          onBidAccepted={handleBidAccepted}
+          onBidRejected={handleBidRejected}
+          onJobStatusUpdate={handleJobStatusUpdate}
+        />
+      )}
     </div>
   );
 }
