@@ -79,8 +79,6 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
     }
   };
 
-  const selectedJob = jobs.find(job => job.id === selectedJobId);
-
   // Handle different views
   if (currentView === 'job-details' && selectedJob) {
     return (
@@ -117,7 +115,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
             </div>
             <div className="bg-white rounded-2xl shadow-lg mb-6">
               <div className="p-6 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-2xl">
-                <h1 className="text-2xl font-bold">Manage Bids - {selectedJob?.title}</h1>
+                <h1 className="text-2xl font-bold">Manage Bids - {jobs.find(job => job._id === selectedJobId)?.title}</h1>
               </div>
             </div>
             <BidManagement jobId={selectedJobId} />
@@ -142,7 +140,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
             </div>
             <div className="bg-white rounded-2xl shadow-lg mb-6">
               <div className="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-2xl">
-                <h1 className="text-2xl font-bold">Job Progress - {selectedJob?.title}</h1>
+                <h1 className="text-2xl font-bold">Job Progress - {jobs.find(job => job._id === selectedJobId)?.title}</h1>
               </div>
             </div>
             <JobProgress jobId={selectedJobId} />

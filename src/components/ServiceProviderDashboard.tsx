@@ -394,4 +394,3 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
     </div>
   );
 }
-}
