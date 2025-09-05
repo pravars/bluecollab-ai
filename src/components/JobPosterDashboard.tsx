@@ -14,7 +14,7 @@ import JobDetails from './JobDetails';
 import BidManagement from './BidManagement-clean';
 import JobProgress from './JobProgress';
 import JobPostingForm from './JobPostingForm';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { Job } from '../models/Job';
 
 interface JobPosterDashboardProps {

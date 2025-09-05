@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import JobListing from './JobListing';
 import JobDetails from './JobDetails';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { Job, Bid } from '../models/Job';
 
 interface ServiceProviderDashboardProps {
