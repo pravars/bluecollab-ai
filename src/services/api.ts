@@ -97,6 +97,74 @@ class ApiService {
     return this.request('/health');
   }
 
+  // ==================== JOB METHODS ====================
+
+  // Create a new job posting
+  async createJob(jobData: any): Promise<ApiResponse<any>> {
+    return this.request('/api/jobs', {
+      method: 'POST',
+      body: JSON.stringify(jobData)
+    });
+  }
+
+  // Get all jobs
+  async getJobs(filters?: { status?: string; serviceType?: string; limit?: number; skip?: number }): Promise<ApiResponse<any[]>> {
+    const queryParams = new URLSearchParams();
+    if (filters?.status) queryParams.append('status', filters.status);
+    if (filters?.serviceType) queryParams.append('serviceType', filters.serviceType);
+    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    if (filters?.skip) queryParams.append('skip', filters.skip.toString());
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/api/jobs?${queryString}` : '/api/jobs';
+    return this.request(endpoint);
+  }
+
+  // Get jobs posted by a specific user
+  async getUserJobs(userId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/jobs/user/${userId}`);
+  }
+
+  // Get a specific job by ID
+  async getJob(jobId: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/jobs/${jobId}`);
+  }
+
+  // Update job status
+  async updateJobStatus(jobId: string, status: string, acceptedBid?: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/jobs/${jobId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, acceptedBid })
+    });
+  }
+
+  // ==================== BID METHODS ====================
+
+  // Create a new bid
+  async createBid(bidData: any): Promise<ApiResponse<any>> {
+    return this.request('/api/bids', {
+      method: 'POST',
+      body: JSON.stringify(bidData)
+    });
+  }
+
+  // Get bids for a specific job
+  async getJobBids(jobId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/jobs/${jobId}/bids`);
+  }
+
+  // Get bids by a specific bidder
+  async getBidderBids(bidderId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/bids/bidder/${bidderId}`);
+  }
+
+  // Accept a bid
+  async acceptBid(bidId: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/bids/${bidId}/accept`, {
+      method: 'PUT'
+    });
+  }
+
   // User operations
   async getUsers(): Promise<ApiResponse<User[]>> {
     return this.request('/api/users');

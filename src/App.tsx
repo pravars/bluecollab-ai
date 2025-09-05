@@ -293,6 +293,7 @@ export default function App() {
         <Suspense fallback={<LoadingFallback />}>
           <JobPosterDashboard 
             onBack={() => setCurrentView('home')}
+            userId={user?._id || ''}
           />
         </Suspense>
       </ErrorBoundary>
@@ -305,6 +306,7 @@ export default function App() {
         <Suspense fallback={<LoadingFallback />}>
           <ServiceProviderDashboard 
             onBack={() => setCurrentView('home')}
+            userId={user?._id || ''}
           />
         </Suspense>
       </ErrorBoundary>

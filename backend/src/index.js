@@ -61,10 +61,7 @@ app.get('/health', (req, res) => {
 // Authentication endpoints
 app.post('/api/auth/register', async (req, res) => {
   try {
-    console.log('Registration request received:', req.body);
-    
     if (!db) {
-      console.log('Database not connected');
       return res.status(503).json({
         success: false,
         error: 'Database not connected'
@@ -476,6 +473,465 @@ app.get('/api/database/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch database stats'
+    });
+  }
+});
+
+// ==================== JOB POSTING ENDPOINTS ====================
+
+// Create a new job posting
+app.post('/api/jobs', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { title, description, serviceType, scope, timeline, budget, location, urgency, specialRequirements, estimatedDuration, skillsRequired, postedBy } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !serviceType || !postedBy) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title, description, service type, and postedBy are required'
+      });
+    }
+
+    // Get poster information
+    const { ObjectId } = await import('mongodb');
+    const poster = await db.collection('users').findOne({ _id: new ObjectId(postedBy) });
+    if (!poster) {
+      return res.status(404).json({
+        success: false,
+        error: 'Poster not found'
+      });
+    }
+
+    const jobData = {
+      title,
+      description,
+      serviceType,
+      scope: scope || 'To be determined',
+      timeline: timeline || 'Flexible',
+      budget: budget || 'To be discussed',
+      location: location || 'Location to be provided',
+      urgency: urgency || 'medium',
+      specialRequirements: specialRequirements || [],
+      estimatedDuration: estimatedDuration || '1-3 days',
+      skillsRequired: skillsRequired || [],
+      status: 'open',
+      postedBy,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      posterInfo: {
+        name: `${poster.firstName} ${poster.lastName}`,
+        email: poster.email,
+        phone: poster.phone || ''
+      }
+    };
+
+    const result = await db.collection('jobs').insertOne(jobData);
+    const newJob = await db.collection('jobs').findOne({ _id: result.insertedId });
+
+    res.status(201).json({
+      success: true,
+      data: newJob,
+      message: 'Job posted successfully'
+    });
+  } catch (error) {
+    console.error('Error creating job:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create job'
+    });
+  }
+});
+
+// Get all jobs (for service providers to browse)
+app.get('/api/jobs', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { status = 'open', serviceType, limit = 50, skip = 0 } = req.query;
+    
+    let query = {};
+    if (status) query.status = status;
+    if (serviceType) query.serviceType = serviceType;
+
+    const jobs = await db.collection('jobs')
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip))
+      .toArray();
+
+    // Get bid counts for each job
+    const jobsWithBids = await Promise.all(jobs.map(async (job) => {
+      const bidCount = await db.collection('bids').countDocuments({ jobId: job._id.toString() });
+      return { ...job, bidCount };
+    }));
+
+    res.json({
+      success: true,
+      data: jobsWithBids
+    });
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch jobs'
+    });
+  }
+});
+
+// Get jobs posted by a specific user
+app.get('/api/jobs/user/:userId', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { ObjectId } = await import('mongodb');
+    const jobs = await db.collection('jobs')
+      .find({ postedBy: req.params.userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Get bids for each job
+    const jobsWithBids = await Promise.all(jobs.map(async (job) => {
+      const bids = await db.collection('bids')
+        .find({ jobId: job._id.toString() })
+        .toArray();
+      return { ...job, bids };
+    }));
+
+    res.json({
+      success: true,
+      data: jobsWithBids
+    });
+  } catch (error) {
+    console.error('Error fetching user jobs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user jobs'
+    });
+  }
+});
+
+// Get a specific job by ID
+app.get('/api/jobs/:id', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { ObjectId } = await import('mongodb');
+    const job = await db.collection('jobs').findOne({ _id: new ObjectId(req.params.id) });
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found'
+      });
+    }
+
+    // Get bids for this job
+    const bids = await db.collection('bids')
+      .find({ jobId: req.params.id })
+      .toArray();
+
+    res.json({
+      success: true,
+      data: { ...job, bids }
+    });
+  } catch (error) {
+    console.error('Error fetching job:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch job'
+    });
+  }
+});
+
+// Update job status
+app.put('/api/jobs/:id/status', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { status, acceptedBid } = req.body;
+    const { ObjectId } = await import('mongodb');
+
+    const updateData = {
+      status,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (acceptedBid) {
+      updateData.acceptedBid = acceptedBid;
+    }
+
+    const result = await db.collection('jobs').updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Job status updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating job status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update job status'
+    });
+  }
+});
+
+// ==================== BIDDING ENDPOINTS ====================
+
+// Create a new bid
+app.post('/api/bids', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { jobId, bidderId, amount, timeline, description } = req.body;
+
+    // Validate required fields
+    if (!jobId || !bidderId || !amount || !timeline) {
+      return res.status(400).json({
+        success: false,
+        error: 'Job ID, bidder ID, amount, and timeline are required'
+      });
+    }
+
+    // Check if job exists and is open
+    const { ObjectId } = await import('mongodb');
+    const job = await db.collection('jobs').findOne({ _id: new ObjectId(jobId) });
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found'
+      });
+    }
+
+    if (job.status !== 'open') {
+      return res.status(400).json({
+        success: false,
+        error: 'Job is no longer accepting bids'
+      });
+    }
+
+    // Check if bidder already bid on this job
+    const existingBid = await db.collection('bids').findOne({ 
+      jobId, 
+      bidderId 
+    });
+    if (existingBid) {
+      return res.status(400).json({
+        success: false,
+        error: 'You have already bid on this job'
+      });
+    }
+
+    // Get bidder information
+    const bidder = await db.collection('users').findOne({ _id: new ObjectId(bidderId) });
+    if (!bidder) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bidder not found'
+      });
+    }
+
+    const bidData = {
+      jobId,
+      bidderId,
+      amount: parseFloat(amount),
+      timeline,
+      description: description || '',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      bidderInfo: {
+        name: `${bidder.firstName} ${bidder.lastName}`,
+        email: bidder.email,
+        phone: bidder.phone || '',
+        rating: 0, // TODO: Calculate from reviews
+        reviewCount: 0
+      }
+    };
+
+    const result = await db.collection('bids').insertOne(bidData);
+    const newBid = await db.collection('bids').findOne({ _id: result.insertedId });
+
+    res.status(201).json({
+      success: true,
+      data: newBid,
+      message: 'Bid submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error creating bid:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create bid'
+    });
+  }
+});
+
+// Get bids for a specific job
+app.get('/api/jobs/:jobId/bids', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const bids = await db.collection('bids')
+      .find({ jobId: req.params.jobId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({
+      success: true,
+      data: bids
+    });
+  } catch (error) {
+    console.error('Error fetching bids:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bids'
+    });
+  }
+});
+
+// Get bids by a specific bidder
+app.get('/api/bids/bidder/:bidderId', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const bids = await db.collection('bids')
+      .find({ bidderId: req.params.bidderId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Get job information for each bid
+    const bidsWithJobs = await Promise.all(bids.map(async (bid) => {
+      const { ObjectId } = await import('mongodb');
+      const job = await db.collection('jobs').findOne({ _id: new ObjectId(bid.jobId) });
+      return { ...bid, job };
+    }));
+
+    res.json({
+      success: true,
+      data: bidsWithJobs
+    });
+  } catch (error) {
+    console.error('Error fetching bidder bids:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bidder bids'
+    });
+  }
+});
+
+// Accept a bid
+app.put('/api/bids/:bidId/accept', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { ObjectId } = await import('mongodb');
+    
+    // Update bid status to accepted
+    await db.collection('bids').updateOne(
+      { _id: new ObjectId(req.params.bidId) },
+      { 
+        $set: { 
+          status: 'accepted',
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    // Get the bid to find the job
+    const bid = await db.collection('bids').findOne({ _id: new ObjectId(req.params.bidId) });
+    
+    // Update job status and set accepted bid
+    await db.collection('jobs').updateOne(
+      { _id: new ObjectId(bid.jobId) },
+      { 
+        $set: { 
+          status: 'in_progress',
+          acceptedBid: req.params.bidId,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    // Reject all other bids for this job
+    await db.collection('bids').updateMany(
+      { 
+        jobId: bid.jobId,
+        _id: { $ne: new ObjectId(req.params.bidId) }
+      },
+      { 
+        $set: { 
+          status: 'rejected',
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Bid accepted successfully'
+    });
+  } catch (error) {
+    console.error('Error accepting bid:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to accept bid'
     });
   }
 });

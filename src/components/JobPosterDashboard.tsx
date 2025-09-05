@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, 
   Clock, 
@@ -6,72 +6,60 @@ import {
   Users, 
   CheckCircle, 
   Calendar,
-  MapPin
+  MapPin,
+  Plus,
+  Eye
 } from 'lucide-react';
 import JobDetails from './JobDetails';
 import BidManagement from './BidManagement-clean';
 import JobProgress from './JobProgress';
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  budget: string;
-  location: string;
-  status: 'open' | 'in-progress' | 'completed';
-  postedDate: string;
-  bidCount: number;
-  urgency: 'low' | 'medium' | 'high';
-}
+import JobPostingForm from './JobPostingForm';
+import { apiService } from '../services/api';
+import { Job } from '../models/Job';
 
 interface JobPosterDashboardProps {
   onBack: () => void;
+  userId: string;
 }
 
-export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) {
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'job-details' | 'bid-management' | 'job-progress'>('dashboard');
+export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboardProps) {
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'job-details' | 'bid-management' | 'job-progress' | 'post-job'>('dashboard');
 
-  // Mock job data
-  const jobs: Job[] = [
-    {
-      id: '1',
-      title: 'Living room painting',
-      description: 'Need to paint my living room walls. Room is approximately 15x12 feet with high ceilings.',
-      category: 'Painting',
-      budget: '$400-$600',
-      location: 'Downtown, TX',
-      status: 'open',
-      postedDate: '2025-01-15',
-      bidCount: 8,
-      urgency: 'medium'
-    },
-    {
-      id: '2',
-      title: 'Kitchen plumbing repair',
-      description: 'Leaky faucet and garbage disposal installation needed.',
-      category: 'Plumbing',
-      budget: '$200-$400',
-      location: 'Suburbia, TX',
-      status: 'in-progress',
-      postedDate: '2025-01-10',
-      bidCount: 5,
-      urgency: 'high'
-    },
-    {
-      id: '3',
-      title: 'Bathroom tile installation',
-      description: 'Replace old bathroom tiles with new ceramic tiles. 50 sq ft area.',
-      category: 'Flooring',
-      budget: '$800-$1200',
-      location: 'Midtown, TX',
-      status: 'completed',
-      postedDate: '2025-01-05',
-      bidCount: 12,
-      urgency: 'low'
+  // Fetch user's jobs
+  useEffect(() => {
+    fetchUserJobs();
+  }, [userId]);
+
+  const fetchUserJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getUserJobs(userId);
+      if (response.success) {
+        setJobs(response.data || []);
+      } else {
+        setError(response.error || 'Failed to fetch jobs');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleJobPosted = (newJob: Job) => {
+    setJobs(prev => [newJob, ...prev]);
+    setCurrentView('dashboard');
+  };
+
+  const handleJobSelect = (job: Job) => {
+    setSelectedJob(job);
+    setCurrentView('job-details');
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -164,6 +152,41 @@ export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) 
     );
   }
 
+  if (currentView === 'post-job') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4 py-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                <span>← Back to Dashboard</span>
+              </button>
+            </div>
+            <JobPostingForm
+              userId={userId}
+              onJobPosted={handleJobPosted}
+              onCancel={() => setCurrentView('dashboard')}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === 'job-details' && selectedJob) {
+    return (
+      <JobDetails
+        job={selectedJob}
+        currentUserId={userId}
+        userType="homeowner"
+        onBack={() => setCurrentView('dashboard')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-6">
@@ -245,29 +268,66 @@ export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) 
 
           {/* Jobs List */}
           <div className="bg-white rounded-2xl shadow-lg">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800">Your Posted Jobs</h2>
+              <button
+                onClick={() => setCurrentView('post-job')}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Post New Job</span>
+              </button>
             </div>
             
             <div className="p-6 space-y-4">
-              {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(job.status)}`}>
-                          {job.status.replace('-', ' ').toUpperCase()}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(job.urgency)}`}>
-                          {job.urgency.toUpperCase()} PRIORITY
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-600 mb-3">{job.description}</p>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading jobs</h3>
+                  <p className="text-gray-500 mb-4">{error}</p>
+                  <button
+                    onClick={fetchUserJobs}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 text-6xl mb-4">📝</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs posted yet</h3>
+                  <p className="text-gray-500 mb-4">Get started by posting your first job!</p>
+                  <button
+                    onClick={() => setCurrentView('post-job')}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                  >
+                    Post Your First Job
+                  </button>
+                </div>
+              ) : (
+                jobs.map((job) => (
+                  <div
+                    key={job._id}
+                    className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleJobSelect(job)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-bold text-gray-800">{job.title}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(job.status)}`}>
+                            {job.status.replace('-', ' ').toUpperCase()}
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(job.urgency)}`}>
+                            {job.urgency.toUpperCase()} PRIORITY
+                          </span>
+                        </div>
+                        
+                        <p className="text-gray-600 mb-3 line-clamp-2">{job.description}</p>
                       
                       <div className="flex items-center space-x-6 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
@@ -280,19 +340,20 @@ export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) 
                         </div>
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
-                          <span>Posted {new Date(job.postedDate).toLocaleDateString()}</span>
+                          <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />
-                          <span>{job.bidCount} bids</span>
+                          <span>{job.bids?.length || 0} bids</span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex flex-col items-end space-y-2">
                       <button 
-                        onClick={() => {
-                          setSelectedJobId(job.id);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedJob(job);
                           setCurrentView('job-details');
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
@@ -300,18 +361,20 @@ export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) 
                         View Details
                       </button>
                       <button 
-                        onClick={() => {
-                          setSelectedJobId(job.id);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedJobId(job._id!);
                           setCurrentView('bid-management');
                         }}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
                       >
-                        Manage Bids ({job.bidCount})
+                        Manage Bids ({job.bids?.length || 0})
                       </button>
-                      {job.status === 'in-progress' && (
+                      {job.status === 'in_progress' && (
                         <button 
-                          onClick={() => {
-                            setSelectedJobId(job.id);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedJobId(job._id!);
                             setCurrentView('job-progress');
                           }}
                           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
@@ -322,7 +385,8 @@ export default function JobPosterDashboard({ onBack }: JobPosterDashboardProps) 
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
 

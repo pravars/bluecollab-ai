@@ -1,129 +1,65 @@
-import { Document, ObjectId } from 'mongodb';
-
-// Job Types
-export type JobStatus = 'draft' | 'open' | 'in_progress' | 'completed' | 'cancelled' | 'disputed';
-export type JobUrgency = 'low' | 'medium' | 'high' | 'urgent';
-
-// Service Category
-export interface ServiceCategory {
-  id: ObjectId;
-  name: string;
-  subcategory?: string;
-}
-
-// Job Location
-export interface JobLocation {
-  address: string;
-  coordinates: [number, number]; // [longitude, latitude]
-  radius: number; // in miles
-}
-
-// Job Timeline
-export interface JobTimeline {
-  preferredStartDate: Date;
-  preferredEndDate: Date;
-  estimatedDurationHours: number;
-}
-
-// Job Requirements
-export interface JobRequirements {
-  materialsProvided: boolean;
-  materialsDescription?: string;
-  specialRequirements?: string;
-  mandatoryRequirements: string[];
-}
-
-// Job Document
-export interface Job extends Document {
-  _id: ObjectId;
-  homeownerId: ObjectId;
+export interface Job {
+  _id?: string;
   title: string;
   description: string;
-  category: ServiceCategory;
-  budget: {
-    min: number;
-    max: number;
-    currency: string;
+  serviceType: string;
+  scope: string;
+  timeline: string;
+  budget: string;
+  location: string;
+  urgency: 'low' | 'medium' | 'high';
+  specialRequirements: string[];
+  estimatedDuration: string;
+  skillsRequired: string[];
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  postedBy: string; // User ID
+  acceptedBid?: string; // Bid ID
+  createdAt: string;
+  updatedAt: string;
+  bids?: Bid[];
+  posterInfo?: {
+    name: string;
+    email: string;
+    phone?: string;
   };
-  urgency: JobUrgency;
-  status: JobStatus;
-  location: JobLocation;
-  timeline: JobTimeline;
-  requirements: JobRequirements;
-  photos: string[];
-  isEmergency: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  publishedAt?: Date;
-  completedAt?: Date;
 }
 
-// Job Creation Input
-export interface CreateJobInput {
-  homeownerId: ObjectId;
+export interface Bid {
+  _id?: string;
+  jobId: string;
+  bidderId: string; // Service Provider ID
+  amount: number;
+  timeline: string;
+  description: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  bidderInfo?: {
+    name: string;
+    email: string;
+    phone?: string;
+    rating?: number;
+    reviewCount?: number;
+  };
+}
+
+export interface CreateJobRequest {
   title: string;
   description: string;
-  categoryId: ObjectId;
-  subcategory?: string;
-  budgetMin: number;
-  budgetMax: number;
-  urgency: JobUrgency;
-  location: JobLocation;
-  timeline: JobTimeline;
-  requirements: JobRequirements;
-  photos?: string[];
-  isEmergency?: boolean;
+  serviceType: string;
+  scope: string;
+  timeline: string;
+  budget: string;
+  location: string;
+  urgency: 'low' | 'medium' | 'high';
+  specialRequirements: string[];
+  estimatedDuration: string;
+  skillsRequired: string[];
 }
 
-// Job Update Input
-export interface UpdateJobInput {
-  title?: string;
-  description?: string;
-  budgetMin?: number;
-  budgetMax?: number;
-  urgency?: JobUrgency;
-  status?: JobStatus;
-  timeline?: Partial<JobTimeline>;
-  requirements?: Partial<JobRequirements>;
-  photos?: string[];
-  isEmergency?: boolean;
-}
-
-// Job Query Filters
-export interface JobFilters {
-  homeownerId?: ObjectId;
-  categoryId?: ObjectId;
-  status?: JobStatus;
-  urgency?: JobUrgency;
-  location?: {
-    coordinates: [number, number];
-    maxDistance: number; // in meters
-  };
-  budgetMin?: number;
-  budgetMax?: number;
-  isEmergency?: boolean;
-  search?: string;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-  limit?: number;
-  offset?: number;
-}
-
-// Job Statistics
-export interface JobStats {
-  totalJobs: number;
-  openJobs: number;
-  inProgressJobs: number;
-  completedJobs: number;
-  averageJobValue: number;
-  jobsByCategory: Array<{
-    category: string;
-    count: number;
-  }>;
-  jobsByUrgency: Array<{
-    urgency: string;
-    count: number;
-  }>;
+export interface CreateBidRequest {
+  jobId: string;
+  amount: number;
+  timeline: string;
+  description: string;
 }

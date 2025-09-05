@@ -1,285 +1,414 @@
-import React from 'react';
-import { 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  Clock, 
-  Tag, 
-  AlertCircle,
-  Edit,
-  Share,
-  Eye
-} from 'lucide-react';
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  budget: string;
-  location: string;
-  status: 'open' | 'in-progress' | 'completed';
-  postedDate: string;
-  bidCount: number;
-  urgency: 'low' | 'medium' | 'high';
-}
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
+import { Job, Bid, CreateBidRequest } from '../models/Job';
 
 interface JobDetailsProps {
   job: Job;
+  currentUserId?: string;
+  userType?: string;
+  onBack: () => void;
+  onBidSubmitted?: (bid: Bid) => void;
 }
 
-export default function JobDetails({ job }: JobDetailsProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+const JobDetails: React.FC<JobDetailsProps> = ({ 
+  job, 
+  currentUserId, 
+  userType, 
+  onBack, 
+  onBidSubmitted 
+}) => {
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [showBidForm, setShowBidForm] = useState(false);
+  const [bidForm, setBidForm] = useState({
+    amount: '',
+    timeline: '',
+    description: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (job._id) {
+      fetchBids();
+    }
+  }, [job._id]);
+
+  const fetchBids = async () => {
+    try {
+      const response = await apiService.getJobBids(job._id!);
+      if (response.success) {
+        setBids(response.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching bids:', err);
+    }
+  };
+
+  const handleBidSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUserId || !job._id) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const bidData: CreateBidRequest = {
+        jobId: job._id,
+        amount: parseFloat(bidForm.amount),
+        timeline: bidForm.timeline,
+        description: bidForm.description
+      };
+
+      const response = await apiService.createBid({
+        ...bidData,
+        bidderId: currentUserId
+      });
+
+      if (response.success) {
+        setBids(prev => [response.data, ...prev]);
+        setShowBidForm(false);
+        setBidForm({ amount: '', timeline: '', description: '' });
+        onBidSubmitted?.(response.data);
+      } else {
+        setError(response.error || 'Failed to submit bid');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error submitting bid:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptBid = async (bidId: string) => {
+    if (!confirm('Are you sure you want to accept this bid? This will close the job to other bidders.')) {
+      return;
+    }
+
+    try {
+      const response = await apiService.acceptBid(bidId);
+      if (response.success) {
+        // Refresh bids to show updated status
+        fetchBids();
+        // Update job status
+        window.location.reload(); // Simple refresh for now
+      } else {
+        setError(response.error || 'Failed to accept bid');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error accepting bid:', err);
     }
   };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Mock additional job details
-  const jobDetails = {
-    requirements: [
-      'Professional painting experience required',
-      'Must provide own equipment and supplies',
-      'Availability for weekend work preferred',
-      'References from previous clients required'
-    ],
-    timeline: 'Project should be completed within 1-2 weeks',
-    specifications: {
-      roomSize: '15ft x 12ft',
-      ceilingHeight: '10ft',
-      wallCondition: 'Good condition, minor nail holes to fill',
-      paintType: 'Eggshell finish preferred',
-      colors: 'Will discuss color selection with chosen contractor'
-    },
-    photos: [
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
-      'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=400',
-      'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=400'
-    ],
-    preferredSchedule: 'Weekends or evenings after 5 PM',
-    contactPreference: 'Text or email for initial contact',
-    views: 127,
-    applications: job.bidCount
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
+  const getBidStatusColor = (status: string) => {
+    switch (status) {
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const isJobOwner = currentUserId === job.postedBy;
+  const canBid = userType === 'provider' && job.status === 'open' && !isJobOwner;
+
   return (
-    <div className="space-y-6">
-      {/* Job Overview Card */}
-      <div className="bg-white rounded-2xl shadow-lg">
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{job.title}</h2>
-              <div className="flex items-center space-x-3">
-                <span className={`px-3 py-1 rounded-full border text-sm font-semibold ${getStatusColor(job.status)}`}>
-                  {job.status.replace('-', ' ').toUpperCase()}
-                </span>
-                <span className={`px-3 py-1 rounded-full border text-sm font-semibold ${getUrgencyColor(job.urgency)}`}>
-                  {job.urgency.toUpperCase()} PRIORITY
-                </span>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                <Edit className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                <Share className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-800">{job.budget}</div>
-                <div className="text-sm text-gray-500">Budget Range</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-800">{job.location}</div>
-                <div className="text-sm text-gray-500">Location</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-800">
-                  {new Date(job.postedDate).toLocaleDateString()}
-                </div>
-                <div className="text-sm text-gray-500">Posted Date</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Eye className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-800">{jobDetails.views}</div>
-                <div className="text-sm text-gray-500">Views</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Job Description</h3>
-            <p className="text-gray-600 leading-relaxed">{job.description}</p>
-          </div>
+    <div className="max-w-4xl mx-auto p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center text-gray-600 hover:text-gray-800"
+        >
+          ← Back to Jobs
+        </button>
+        <div className="flex space-x-2">
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
+            {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+          </span>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getUrgencyColor(job.urgency)}`}>
+            {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)} Priority
+          </span>
         </div>
       </div>
 
-      {/* Detailed Specifications */}
-      <div className="bg-white rounded-2xl shadow-lg">
-        <div className="p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Project Specifications</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Room Details</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Size:</span>
-                  <span className="font-semibold">{jobDetails.specifications.roomSize}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Job Details */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{job.title}</h1>
+            <p className="text-gray-600 text-lg mb-6">{job.description}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Details</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Service Type:</span>
+                    <p className="text-gray-900">{job.serviceType}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Scope:</span>
+                    <p className="text-gray-900">{job.scope}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Timeline:</span>
+                    <p className="text-gray-900">{job.timeline}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Budget:</span>
+                    <p className="text-gray-900">{job.budget}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Ceiling Height:</span>
-                  <span className="font-semibold">{jobDetails.specifications.ceilingHeight}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Wall Condition:</span>
-                  <span className="font-semibold">{jobDetails.specifications.wallCondition}</span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Location & Duration</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Location:</span>
+                    <p className="text-gray-900">{job.location}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Estimated Duration:</span>
+                    <p className="text-gray-900">{job.estimatedDuration}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Posted:</span>
+                    <p className="text-gray-900">{formatDate(job.createdAt)}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Paint Preferences</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Finish Type:</span>
-                  <span className="font-semibold">{jobDetails.specifications.paintType}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Colors:</span>
-                  <span className="font-semibold">{jobDetails.specifications.colors}</span>
-                </div>
+            {/* Skills and Requirements */}
+            {(job.skillsRequired?.length > 0 || job.specialRequirements?.length > 0) && (
+              <div className="mt-6">
+                {job.skillsRequired?.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Skills Required</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {job.skillsRequired.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {job.specialRequirements?.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Special Requirements</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {job.specialRequirements.map((req, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                        >
+                          {req}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="font-semibold text-gray-800 mb-3">Timeline & Schedule</h4>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-blue-800">Project Timeline</div>
-                  <div className="text-blue-700 text-sm">{jobDetails.timeline}</div>
-                </div>
-              </div>
+          {/* Bids Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Bids ({bids.length})
+              </h2>
+              {canBid && (
+                <button
+                  onClick={() => setShowBidForm(!showBidForm)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  {showBidForm ? 'Cancel' : 'Submit Bid'}
+                </button>
+              )}
             </div>
-            <div className="text-sm text-gray-600">
-              <strong>Preferred Schedule:</strong> {jobDetails.preferredSchedule}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Requirements & Photos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Requirements */}
-        <div className="bg-white rounded-2xl shadow-lg">
-          <div className="p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-6">Requirements</h3>
-            <div className="space-y-3">
-              {jobDetails.requirements.map((requirement, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                  <span className="text-gray-700 text-sm">{requirement}</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-yellow-800">Contact Preference</div>
-                  <div className="text-yellow-700 text-sm">{jobDetails.contactPreference}</div>
-                </div>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600">{error}</p>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Project Photos */}
-        <div className="bg-white rounded-2xl shadow-lg">
-          <div className="p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-6">Project Photos</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {jobDetails.photos.map((photo, index) => (
-                <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img 
-                    src={photo} 
-                    alt={`Project photo ${index + 1}`}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+            {/* Bid Form */}
+            {showBidForm && (
+              <form onSubmit={handleBidSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Submit Your Bid</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bid Amount ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={bidForm.amount}
+                      onChange={(e) => setBidForm(prev => ({ ...prev, amount: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter your bid amount"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Timeline
+                    </label>
+                    <input
+                      type="text"
+                      value={bidForm.timeline}
+                      onChange={(e) => setBidForm(prev => ({ ...prev, timeline: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., 2-3 days"
+                    />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={bidForm.description}
+                    onChange={(e) => setBidForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe your approach and any additional details..."
                   />
                 </div>
-              ))}
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {loading ? 'Submitting...' : 'Submit Bid'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBidForm(false)}
+                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Bids List */}
+            <div className="space-y-4">
+              {bids.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No bids yet. Be the first to bid!</p>
+              ) : (
+                bids.map((bid) => (
+                  <div key={bid._id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{bid.bidderInfo?.name}</h4>
+                        <p className="text-sm text-gray-500">{formatDate(bid.createdAt)}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBidStatusColor(bid.status)}`}>
+                          {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                        </span>
+                        <span className="text-lg font-bold text-gray-900">${bid.amount}</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 mb-2">{bid.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Timeline: {bid.timeline}</span>
+                      {isJobOwner && job.status === 'open' && bid.status === 'pending' && (
+                        <button
+                          onClick={() => handleAcceptBid(bid._id!)}
+                          className="bg-green-600 text-white px-4 py-1 rounded-md hover:bg-green-700 text-sm"
+                        >
+                          Accept Bid
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-            <button className="w-full mt-4 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors">
-              + Add More Photos
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Performance Metrics */}
-      <div className="bg-white rounded-2xl shadow-lg">
-        <div className="p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Job Performance</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{jobDetails.views}</div>
-              <div className="text-sm text-gray-600">Total Views</div>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Poster Info */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Poster</h3>
+            <div className="space-y-2">
+              <p className="font-medium text-gray-900">{job.posterInfo?.name}</p>
+              <p className="text-sm text-gray-500">{job.posterInfo?.email}</p>
+              {job.posterInfo?.phone && (
+                <p className="text-sm text-gray-500">{job.posterInfo.phone}</p>
+              )}
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-xl">
-              <div className="text-3xl font-bold text-green-600 mb-2">{jobDetails.applications}</div>
-              <div className="text-sm text-gray-600">Applications</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-xl">
-              <div className="text-3xl font-bold text-purple-600 mb-2">
-                {Math.round((jobDetails.applications / jobDetails.views) * 100)}%
+          </div>
+
+          {/* Job Stats */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Statistics</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Total Bids:</span>
+                <span className="font-medium">{bids.length}</span>
               </div>
-              <div className="text-sm text-gray-600">Application Rate</div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Status:</span>
+                <span className="font-medium capitalize">{job.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Urgency:</span>
+                <span className="font-medium capitalize">{job.urgency}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default JobDetails;
