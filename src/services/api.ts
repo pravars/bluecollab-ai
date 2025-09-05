@@ -1,7 +1,7 @@
 // API service for communicating with the backend
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://api.dwello.com' 
-  : 'http://localhost:3001';
+  : 'http://localhost:3002';
 
 export interface User {
   _id: string;
