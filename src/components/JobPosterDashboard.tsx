@@ -42,6 +42,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
       console.log('User jobs response:', response);
       if (response.success) {
         setJobs(response.data || []);
+        console.log('Jobs set to:', response.data || []);
       } else {
         setError(response.error || 'Failed to fetch jobs');
       }
@@ -49,6 +50,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
       setError('Network error. Please try again.');
       console.error('Error fetching jobs:', err);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -340,11 +342,11 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                         </div>
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
-                          <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
+                          <span>Posted {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Unknown date'}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />
-                          <span>{job.bids?.length || 0} bids</span>
+                          <span>{Array.isArray(job.bids) ? job.bids.length : 0} bids</span>
                         </div>
                       </div>
                     </div>
