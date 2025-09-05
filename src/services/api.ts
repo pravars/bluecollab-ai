@@ -39,6 +39,7 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
+      
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -47,7 +48,30 @@ class ApiService {
         ...options,
       });
 
-      const data = await response.json();
+      // Check if response has content before trying to parse JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('Failed to parse JSON response:', jsonError);
+          return {
+            success: false,
+            error: 'Invalid JSON response from server',
+            message: 'Server returned invalid data'
+          };
+        }
+      } else {
+        // Handle non-JSON responses
+        const text = await response.text();
+        return {
+          success: false,
+          error: `Server returned ${response.status}: ${text}`,
+          message: 'Unexpected response format'
+        };
+      }
       
       if (!response.ok) {
         // Return the error response from the backend instead of throwing

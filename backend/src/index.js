@@ -61,7 +61,10 @@ app.get('/health', (req, res) => {
 // Authentication endpoints
 app.post('/api/auth/register', async (req, res) => {
   try {
+    console.log('Registration request received:', req.body);
+    
     if (!db) {
+      console.log('Database not connected');
       return res.status(503).json({
         success: false,
         error: 'Database not connected'
