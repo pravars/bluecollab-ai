@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { MessageCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Home } from 'lucide-react';
+import apiService from '../services/api';
 
 interface ServiceSeekerSignInProps {
   onBack: () => void;
-  onSignIn: () => void;
+  onSignIn: (user: any, token: string) => void;
 }
 
 export default function ServiceSeekerSignIn({ onBack, onSignIn }: ServiceSeekerSignInProps) {
@@ -11,15 +12,71 @@ export default function ServiceSeekerSignIn({ onBack, onSignIn }: ServiceSeekerS
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate sign in/up process
-    setTimeout(() => {
-      onSignIn();
-    }, 1000);
+    setLoading(true);
+    setError('');
+
+    try {
+      if (isSignUp) {
+        // Validate passwords match
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long');
+          setLoading(false);
+          return;
+        }
+
+        // Register user
+        const response = await apiService.register({
+          email,
+          password,
+          firstName,
+          lastName,
+          userType: 'homeowner'
+        });
+
+        if (response.success && response.data) {
+          onSignIn(response.data.user, response.data.token);
+        } else {
+          // Show user-friendly error messages
+          const errorMessage = response.error === 'User with this email already exists'
+            ? 'An account with this email already exists. Please try logging in instead.'
+            : response.error || 'Registration failed. Please try again.';
+          setError(errorMessage);
+        }
+      } else {
+        // Login user
+        const response = await apiService.login(email, password);
+        
+        if (response.success && response.data) {
+          onSignIn(response.data.user, response.data.token);
+        } else {
+          // Show user-friendly error messages
+          const errorMessage = response.error === 'Invalid email or password' 
+            ? 'Invalid email or password. Please check your credentials and try again.'
+            : response.error || 'Login failed. Please try again.';
+          setError(errorMessage);
+        }
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Authentication error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -64,23 +121,45 @@ export default function ServiceSeekerSignIn({ onBack, onSignIn }: ServiceSeekerS
 
         {/* Sign In Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter your full name"
-                    required
-                  />
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your first name"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your last name"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>
@@ -157,9 +236,10 @@ export default function ServiceSeekerSignIn({ onBack, onSignIn }: ServiceSeekerS
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold text-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 rounded-xl font-semibold text-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:shadow-lg"
             >
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
             </button>
           </form>
 

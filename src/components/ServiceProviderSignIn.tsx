@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { MessageCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Briefcase, Phone, MapPin, Star, CheckCircle } from 'lucide-react';
+import apiService from '../services/api';
 
 interface ServiceProviderSignInProps {
   onBack: () => void;
-  onSignIn: () => void;
+  onSignIn: (user: any, token: string) => void;
 }
 
 export default function ServiceProviderSignIn({ onBack, onSignIn }: ServiceProviderSignInProps) {
@@ -16,13 +17,81 @@ export default function ServiceProviderSignIn({ onBack, onSignIn }: ServiceProvi
   const [location, setLocation] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate sign in/up process
-    setTimeout(() => {
-      onSignIn();
-    }, 1000);
+    setLoading(true);
+    setError('');
+
+    try {
+      if (isSignUp) {
+        // Validate passwords match
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters long');
+          setLoading(false);
+          return;
+        }
+
+        // Validate required fields for service provider
+        if (!businessName || !phone || !location || !serviceType) {
+          setError('Please fill in all required fields');
+          setLoading(false);
+          return;
+        }
+
+        // Register service provider
+        const response = await apiService.register({
+          email,
+          password,
+          firstName: businessName, // Use business name as first name for providers
+          lastName: serviceType,    // Use service type as last name for providers
+          userType: 'service_provider'
+        });
+
+        if (response.success && response.data) {
+          onSignIn(response.data.user, response.data.token);
+        } else {
+          // Show user-friendly error messages
+          const errorMessage = response.error === 'User with this email already exists'
+            ? 'An account with this email already exists. Please try logging in instead.'
+            : response.error || 'Registration failed. Please try again.';
+          setError(errorMessage);
+        }
+      } else {
+        // Login service provider
+        const response = await apiService.login(email, password);
+        
+        if (response.success && response.data) {
+          // Check if user is actually a service provider
+          if (response.data.user.userType !== 'service_provider') {
+            setError('This account is not registered as a service provider');
+            setLoading(false);
+            return;
+          }
+          onSignIn(response.data.user, response.data.token);
+        } else {
+          // Show user-friendly error messages
+          const errorMessage = response.error === 'Invalid email or password' 
+            ? 'Invalid email or password. Please check your credentials and try again.'
+            : response.error || 'Login failed. Please try again.';
+          setError(errorMessage);
+        }
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Authentication error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -80,6 +149,11 @@ export default function ServiceProviderSignIn({ onBack, onSignIn }: ServiceProvi
 
         {/* Sign In Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
           {isSignUp && (
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6 border border-green-200">
               <div className="flex items-center space-x-3">
@@ -253,9 +327,10 @@ export default function ServiceProviderSignIn({ onBack, onSignIn }: ServiceProvi
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 rounded-xl font-semibold text-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 rounded-xl font-semibold text-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:shadow-lg"
             >
-              {isSignUp ? 'Create Provider Account' : 'Sign In to Dashboard'}
+              {loading ? 'Please wait...' : (isSignUp ? 'Create Provider Account' : 'Sign In to Dashboard')}
             </button>
           </form>
 

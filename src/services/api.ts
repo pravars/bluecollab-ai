@@ -47,11 +47,17 @@ class ApiService {
         ...options,
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Return the error response from the backend instead of throwing
+        return {
+          success: false,
+          error: data.error || `HTTP error! status: ${response.status}`,
+          message: data.message
+        };
       }
 
-      const data = await response.json();
       return data;
     } catch (error) {
       console.error('API request failed:', error);
@@ -112,6 +118,27 @@ class ApiService {
     lastUpdated: string;
   }>> {
     return this.request('/api/database/stats');
+  }
+
+  // Authentication
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    userType?: string;
+  }): Promise<ApiResponse<{ user: User; token: string }>> {
+    return this.request('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async login(email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
   }
 
   // Test connection

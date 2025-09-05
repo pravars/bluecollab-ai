@@ -200,26 +200,30 @@ export default function App() {
     }
   };
 
-  const handleSignIn = (type: 'seeker' | 'provider') => {
+  const handleSignIn = (user: any, token: string, type?: 'seeker' | 'provider') => {
     setIsLoading(true);
     setError(null);
-    // Simulate authentication delay
-    setTimeout(() => {
-      setIsSignedIn(true);
-      setUserType(type);
-      setCurrentView('home');
-      setIsLoading(false);
-    }, 500);
+    
+    // Store user data and token
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('token', token);
+    
+    setIsSignedIn(true);
+    setUserType(type || (user.userType === 'homeowner' ? 'seeker' : 'provider'));
+    setCurrentView('home');
+    setIsLoading(false);
   };
 
   const handleSignOut = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsSignedIn(false);
-      setUserType(null);
-      setCurrentView('home');
-      setIsLoading(false);
-    }, 300);
+    // Clear stored data
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    
+    setIsSignedIn(false);
+    setUserType(null);
+    setCurrentView('home');
+    setIsLoading(false);
   };
 
   // Error state
@@ -327,7 +331,7 @@ export default function App() {
     return (
       <ServiceSeekerSignIn 
         onBack={() => setCurrentView('user-selection')}
-        onSignIn={() => handleSignIn('seeker')}
+        onSignIn={(user, token) => handleSignIn(user, token, 'seeker')}
       />
     );
   }
@@ -336,7 +340,7 @@ export default function App() {
     return (
       <ServiceProviderSignIn 
         onBack={() => setCurrentView('user-selection')}
-        onSignIn={() => handleSignIn('provider')}
+        onSignIn={(user, token) => handleSignIn(user, token, 'provider')}
       />
     );
   }
