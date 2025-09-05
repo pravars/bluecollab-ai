@@ -37,7 +37,9 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const fetchUserJobs = async () => {
     try {
       setLoading(true);
+      console.log('Fetching jobs for userId:', userId);
       const response = await apiService.getUserJobs(userId);
+      console.log('User jobs response:', response);
       if (response.success) {
         setJobs(response.data || []);
       } else {

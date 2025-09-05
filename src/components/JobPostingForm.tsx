@@ -87,10 +87,13 @@ const JobPostingForm: React.FC<JobPostingFormProps> = ({ userId, onJobPosted, on
     setError('');
 
     try {
-      const response = await apiService.createJob({
+      const jobData = {
         ...formData,
         postedBy: userId
-      });
+      };
+      console.log('Creating job with data:', jobData);
+      const response = await apiService.createJob(jobData);
+      console.log('Job creation response:', response);
 
       if (response.success) {
         onJobPosted(response.data);

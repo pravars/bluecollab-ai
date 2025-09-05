@@ -288,6 +288,7 @@ export default function App() {
 
   // View routing
   if (currentView === 'job-dashboard') {
+    console.log('Rendering JobPosterDashboard with user:', user);
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
