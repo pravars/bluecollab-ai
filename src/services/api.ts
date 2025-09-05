@@ -5,6 +5,7 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 console.log('API_BASE_URL:', API_BASE_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Environment check - API service initialized');
 
 export interface User {
   _id: string;
@@ -255,10 +256,26 @@ class ApiService {
   // Test connection
   async testConnection(): Promise<boolean> {
     try {
+      console.log('Testing API connection...');
       const response = await this.healthCheck();
+      console.log('Health check response:', response);
       return response.success;
-    } catch {
+    } catch (error) {
+      console.error('Connection test failed:', error);
       return false;
+    }
+  }
+
+  // Simple test method for debugging
+  async testSimpleRequest(): Promise<void> {
+    try {
+      console.log('Making simple test request...');
+      const response = await fetch('http://localhost:3002/health');
+      console.log('Simple test response status:', response.status);
+      const data = await response.json();
+      console.log('Simple test response data:', data);
+    } catch (error) {
+      console.error('Simple test failed:', error);
     }
   }
 }
