@@ -20,7 +20,9 @@ import { Job, Bid } from '../models/Job';
 import { Payment } from '../models/Payment';
 import stripeService from '../services/StripeService';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_...');
+// For development, we'll use a mock payment mode
+const MOCK_PAYMENT = true; // Set to false when you have real Stripe keys
+const stripePromise = MOCK_PAYMENT ? null : loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51234567890abcdef');
 
 interface PaymentModalProps {
   job: Job;
@@ -29,6 +31,160 @@ interface PaymentModalProps {
   onClose: () => void;
   onPaymentSuccess: (payment: Payment) => void;
 }
+
+// Mock Payment Form for Development
+const MockPaymentForm: React.FC<{
+  job: Job;
+  bid: Bid;
+  onPaymentSuccess: (payment: Payment) => void;
+  onClose: () => void;
+}> = ({ job, bid, onPaymentSuccess, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [cardDetails, setCardDetails] = useState({
+    number: '',
+    expiry: '',
+    cvc: '',
+    name: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      const mockPayment: Payment = {
+        _id: `mock_${Date.now()}`,
+        jobId: job._id!,
+        bidId: bid._id!,
+        amount: bid.amount,
+        currency: 'usd',
+        status: 'completed',
+        paymentMethod: 'mock_card',
+        stripePaymentIntentId: `pi_mock_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      onPaymentSuccess(mockPayment);
+      setLoading(false);
+    }, 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Job Summary */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment Summary</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Job:</span>
+            <span className="font-medium">{job.title}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Service Provider:</span>
+            <span className="font-medium">{bid.bidderInfo?.name || 'Unknown'}</span>
+          </div>
+          <div className="flex justify-between text-lg font-bold">
+            <span>Total Amount:</span>
+            <span className="text-green-600">${bid.amount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Mock Payment Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Card Number
+          </label>
+          <input
+            type="text"
+            value={cardDetails.number}
+            onChange={(e) => setCardDetails(prev => ({ ...prev, number: e.target.value }))}
+            placeholder="1234 5678 9012 3456"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Expiry Date
+            </label>
+            <input
+              type="text"
+              value={cardDetails.expiry}
+              onChange={(e) => setCardDetails(prev => ({ ...prev, expiry: e.target.value }))}
+              placeholder="MM/YY"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CVC
+            </label>
+            <input
+              type="text"
+              value={cardDetails.cvc}
+              onChange={(e) => setCardDetails(prev => ({ ...prev, cvc: e.target.value }))}
+              placeholder="123"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Cardholder Name
+          </label>
+          <input
+            type="text"
+            value={cardDetails.name}
+            onChange={(e) => setCardDetails(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="John Doe"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        {/* Development Notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <div>
+              <h4 className="text-sm font-medium text-yellow-800">Development Mode</h4>
+              <p className="text-sm text-yellow-700">
+                This is a mock payment form. No real payment will be processed.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Processing...' : `Pay $${bid.amount}`}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 function PaymentForm({ job, bid, onPaymentSuccess, onClose }: Omit<PaymentModalProps, 'isOpen'>) {
   const stripe = useStripe();
@@ -341,8 +497,16 @@ export default function PaymentModal({
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Secure Payment</h2>
+              <h2 className="text-2xl font-bold">
+                {job.status === 'completed' ? 'Pay for Completed Job' : 'Secure Payment'}
+              </h2>
               <p className="text-purple-100 mt-1">{job.title}</p>
+              {job.status === 'completed' && (
+                <div className="flex items-center space-x-2 mt-2">
+                  <CheckCircle className="w-4 h-4 text-green-300" />
+                  <span className="text-sm text-green-200">Job completed and ready for payment</span>
+                </div>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -355,14 +519,23 @@ export default function PaymentModal({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          <Elements stripe={stripePromise}>
-            <PaymentForm
+          {MOCK_PAYMENT ? (
+            <MockPaymentForm
               job={job}
               bid={bid}
               onPaymentSuccess={onPaymentSuccess}
               onClose={onClose}
             />
-          </Elements>
+          ) : (
+            <Elements stripe={stripePromise}>
+              <PaymentForm
+                job={job}
+                bid={bid}
+                onPaymentSuccess={onPaymentSuccess}
+                onClose={onClose}
+              />
+            </Elements>
+          )}
         </div>
       </div>
     </div>

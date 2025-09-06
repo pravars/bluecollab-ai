@@ -59,6 +59,9 @@ const JobDetails: React.FC<JobDetailsProps> = ({
         description: bidForm.description
       };
 
+      console.log('Creating bid with currentUserId:', currentUserId);
+      console.log('Bid data:', bidData);
+      
       const response = await apiService.createBid({
         ...bidData,
         bidderId: currentUserId

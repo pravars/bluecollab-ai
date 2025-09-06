@@ -168,6 +168,59 @@ class ApiService {
     });
   }
 
+  // ==================== WORK PROGRESS METHODS ====================
+
+  // Create a work progress update
+  async createProgressUpdate(updateData: any): Promise<ApiResponse<any>> {
+    // Get current user ID from localStorage
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    
+    const dataWithUserId = {
+      ...updateData,
+      userId: user?._id
+    };
+    
+    return this.request('/api/work-progress', {
+      method: 'POST',
+      body: JSON.stringify(dataWithUserId)
+    });
+  }
+
+  // Get work progress for a job
+  async getJobProgress(jobId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/work-progress/job/${jobId}`);
+  }
+
+  // Get work progress for a bid
+  async getBidProgress(bidId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/work-progress/bid/${bidId}`);
+  }
+
+  // ==================== CONVERSATION METHODS ====================
+
+  // Get conversation for a job and bid
+  async getConversation(jobId: string, bidId: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/conversations/job/${jobId}/bid/${bidId}`);
+  }
+
+  // Send a message in conversation
+  async sendMessage(messageData: any): Promise<ApiResponse<any>> {
+    // Get current user ID from localStorage
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    
+    const dataWithUserId = {
+      ...messageData,
+      userId: user?._id
+    };
+    
+    return this.request('/api/conversations/message', {
+      method: 'POST',
+      body: JSON.stringify(dataWithUserId)
+    });
+  }
+
   // Get bids for a specific job
   async getJobBids(jobId: string): Promise<ApiResponse<any[]>> {
     return this.request(`/api/jobs/${jobId}/bids`);

@@ -118,6 +118,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
   }
 
   if (currentView === 'job-details' && selectedJob) {
+    console.log('ServiceProviderDashboard - Rendering JobDetails with userId:', userId);
     return (
       <JobDetails
         job={selectedJob}
@@ -130,7 +131,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
   }
 
   if (currentView === 'my-bids') {
-    return (
+  return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
         <div className="container mx-auto px-4 py-6">
           <div className="max-w-6xl mx-auto">
@@ -222,7 +223,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                               >
                                 View Job
                               </button>
-                              {bid.status === 'accepted' && bid.job && (
+                              {(bid.status === 'accepted' || bid.job?.status === 'completed') && bid.job && (
                                 <button
                                   onClick={() => handleWorkProgress(bid.job!, bid)}
                                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
@@ -295,7 +296,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                   <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
                     <Clock className="w-5 h-5 text-white" />
                   </div>
-                  <div>
+                <div>
                     <div className="text-2xl font-bold text-yellow-600">
                       {myBids.filter(bid => bid.status === 'pending').length}
                     </div>
@@ -309,7 +310,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                   <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                     <Star className="w-5 h-5 text-white" />
                   </div>
-                  <div>
+                <div>
                     <div className="text-2xl font-bold text-blue-600">
                       {myBids.filter(bid => bid.status === 'accepted').length}
                     </div>
@@ -323,7 +324,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                   <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                     <DollarSign className="w-5 h-5 text-white" />
                   </div>
-                  <div>
+                <div>
                     <div className="text-2xl font-bold text-purple-600">
                       ${myBids
                         .filter(bid => bid.status === 'accepted')
@@ -368,14 +369,14 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                 </div>
               </div>
             </div>
-          </div>
+        </div>
 
           {/* Recent Bids */}
           <div className="bg-white rounded-2xl shadow-lg">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-800">Recent Bids</h2>
             </div>
-            
+
             <div className="p-6">
               {loading ? (
                 <div className="flex justify-center items-center py-12">
@@ -398,10 +399,10 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
                   {myBids.slice(0, 3).map((bid) => (
                     <div key={bid._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
+                      <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{bid.job?.title}</h4>
                           <p className="text-sm text-gray-600 mt-1">My bid: ${bid.amount} • {bid.timeline}</p>
-                          {bid.status === 'accepted' && bid.job && (
+                          {(bid.status === 'accepted' || bid.job?.status === 'completed') && bid.job && (
                             <button
                               onClick={() => handleWorkProgress(bid.job!, bid)}
                               className="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-medium transition-colors flex items-center space-x-1"
@@ -443,7 +444,8 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
             setSelectedJobForProgress(null);
             setSelectedBidForProgress(null);
           }}
-          onStatusUpdate={handleJobStatusUpdate}
+          currentUserId={userId}
+          userType="service_provider"
         />
       )}
     </div>

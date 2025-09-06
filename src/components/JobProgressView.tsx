@@ -2,436 +2,408 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Clock, 
-  User, 
-  DollarSign, 
-  Calendar,
-  MapPin,
+  CheckCircle, 
+  AlertCircle, 
+  Pause, 
+  XCircle,
   MessageSquare,
-  Phone,
-  Mail,
-  Briefcase,
-  CheckCircle,
-  AlertCircle,
-  Upload,
-  Download,
-  Image,
-  FileText,
-  Star,
+  Paperclip,
   Send,
+  Calendar,
+  User,
   Eye,
-  ThumbsUp,
-  ThumbsDown
+  EyeOff
 } from 'lucide-react';
 import apiService from '../services/api';
-import { Job, Bid } from '../models/Job';
-
-interface ProgressUpdate {
-  _id: string;
-  jobId: string;
-  providerId: string;
-  providerName: string;
-  type: 'status_update' | 'message' | 'file_upload' | 'photo' | 'milestone';
-  title: string;
-  content: string;
-  files?: string[];
-  status?: string;
-  createdAt: string;
-  isRead: boolean;
-}
+import { WorkProgressUpdate, WorkProgressMessage, CreateMessageRequest } from '../models/WorkProgress';
 
 interface JobProgressViewProps {
-  job: Job;
-  bid: Bid;
   isOpen: boolean;
   onClose: () => void;
-  onStatusUpdate: (jobId: string, status: string) => void;
+  job: any;
+  bid: any;
+  currentUserId: string;
 }
 
-export default function JobProgressView({
-  job,
-  bid,
+const JobProgressView: React.FC<JobProgressViewProps> = ({
   isOpen,
   onClose,
-  onStatusUpdate
-}: JobProgressViewProps) {
-  const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([]);
+  job,
+  bid,
+  currentUserId
+}) => {
+  const [activeTab, setActiveTab] = useState<'progress' | 'conversation'>('progress');
+  const [progressUpdates, setProgressUpdates] = useState<WorkProgressUpdate[]>([]);
+  const [conversation, setConversation] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [newMessage, setNewMessage] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
+  const [showInternalNotes, setShowInternalNotes] = useState(false);
+
+  // Message form state
+  const [messageForm, setMessageForm] = useState({
+    content: '',
+    attachments: [] as string[]
+  });
 
   useEffect(() => {
-    if (isOpen && job._id) {
+    if (isOpen && job?._id && bid?._id) {
       fetchProgressUpdates();
+      fetchConversation();
     }
-  }, [isOpen, job._id]);
+  }, [isOpen, job?._id, bid?._id]);
 
   const fetchProgressUpdates = async () => {
     try {
       setLoading(true);
-      // For now, we'll create mock progress updates
-      // In a real app, this would fetch from an API
-      const mockUpdates: ProgressUpdate[] = [
-        {
-          _id: '1',
-          jobId: job._id,
-          providerId: bid.bidderId,
-          providerName: bid.bidderInfo?.name || 'Service Provider',
-          type: 'status_update',
-          title: 'Work Started',
-          content: 'I have started working on your project. I will begin with the initial assessment and preparation.',
-          status: 'in_progress',
-          createdAt: new Date().toISOString(),
-          isRead: true
-        },
-        {
-          _id: '2',
-          jobId: job._id,
-          providerId: bid.bidderId,
-          providerName: bid.bidderInfo?.name || 'Service Provider',
-          type: 'message',
-          title: 'Progress Update',
-          content: 'I have completed the initial assessment. The work is progressing well and I expect to finish on schedule.',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          isRead: true
-        },
-        {
-          _id: '3',
-          jobId: job._id,
-          providerId: bid.bidderId,
-          providerName: bid.bidderInfo?.name || 'Service Provider',
-          type: 'photo',
-          title: 'Work Photos',
-          content: 'Here are some photos of the work in progress. You can see the quality and attention to detail.',
-          files: ['work-photo-1.jpg', 'work-photo-2.jpg'],
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-          isRead: false
-        },
-        {
-          _id: '4',
-          jobId: job._id,
-          providerId: bid.bidderId,
-          providerName: bid.bidderInfo?.name || 'Service Provider',
-          type: 'milestone',
-          title: 'Milestone Completed',
-          content: 'First phase of the work has been completed successfully. Moving on to the next phase.',
-          status: 'milestone_completed',
-          createdAt: new Date(Date.now() - 10800000).toISOString(),
-          isRead: false
-        }
-      ];
-      setProgressUpdates(mockUpdates);
+      const response = await apiService.getJobProgress(job._id);
+      if (response.success) {
+        setProgressUpdates(response.data || []);
+      } else {
+        setError(response.error || 'Failed to fetch progress updates');
+      }
     } catch (err) {
-      setError('Failed to fetch progress updates');
+      setError('Network error. Please try again.');
       console.error('Error fetching progress updates:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+  const fetchConversation = async () => {
+    try {
+      const response = await apiService.getConversation(job._id, bid._id);
+      if (response.success) {
+        setConversation(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching conversation:', err);
+    }
+  };
+
+  const handleMessageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageForm.content.trim()) return;
 
     try {
-      setSendingMessage(true);
-      // In a real app, this would send a message via API
-      const newUpdate: ProgressUpdate = {
-        _id: Date.now().toString(),
+      setLoading(true);
+      const messageData: CreateMessageRequest = {
         jobId: job._id,
-        providerId: 'poster', // Indicates this is from the job poster
-        providerName: job.posterInfo?.name || 'You',
-        type: 'message',
-        title: 'Message to Service Provider',
-        content: newMessage,
-        createdAt: new Date().toISOString(),
-        isRead: true
+        bidId: bid._id,
+        content: messageForm.content,
+        attachments: messageForm.attachments
       };
-      
-      setProgressUpdates(prev => [newUpdate, ...prev]);
-      setNewMessage('');
+
+      const response = await apiService.sendMessage(messageData);
+      if (response.success) {
+        setMessageForm({ content: '', attachments: [] });
+        fetchConversation(); // Refresh conversation
+      } else {
+        setError(response.error || 'Failed to send message');
+      }
     } catch (err) {
-      setError('Failed to send message');
+      setError('Network error. Please try again.');
       console.error('Error sending message:', err);
     } finally {
-      setSendingMessage(false);
+      setLoading(false);
     }
   };
 
-  const getUpdateIcon = (type: string) => {
-    switch (type) {
-      case 'status_update': return <CheckCircle className="w-5 h-5 text-blue-600" />;
-      case 'message': return <MessageSquare className="w-5 h-5 text-green-600" />;
-      case 'file_upload': return <FileText className="w-5 h-5 text-purple-600" />;
-      case 'photo': return <Image className="w-5 h-5 text-orange-600" />;
-      case 'milestone': return <Star className="w-5 h-5 text-yellow-600" />;
-      default: return <Briefcase className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  const getUpdateColor = (type: string) => {
-    switch (type) {
-      case 'status_update': return 'bg-blue-50 border-blue-200';
-      case 'message': return 'bg-green-50 border-green-200';
-      case 'file_upload': return 'bg-purple-50 border-purple-200';
-      case 'photo': return 'bg-orange-50 border-orange-200';
-      case 'milestone': return 'bg-yellow-50 border-yellow-200';
-      default: return 'bg-gray-50 border-gray-200';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusIcon = (status: WorkProgressUpdate['status']) => {
     switch (status) {
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'milestone_completed': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'in_progress':
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'on_hold':
+        return <Pause className="w-4 h-4 text-yellow-500" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'needs_attention':
+        return <AlertCircle className="w-4 h-4 text-orange-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />;
     }
   };
+
+  const getStatusColor = (status: WorkProgressUpdate['status']) => {
+    switch (status) {
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'on_hold':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'needs_attention':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Filter progress updates based on internal notes visibility
+  const visibleUpdates = progressUpdates.filter(update => 
+    !update.isInternal || showInternalNotes
+  );
+
+  // Calculate overall progress
+  const overallProgress = progressUpdates.length > 0 
+    ? Math.round(progressUpdates.reduce((sum, update) => sum + update.progress, 0) / progressUpdates.length)
+    : 0;
+
+  // Get latest status
+  const latestStatus = progressUpdates.length > 0 ? progressUpdates[0].status : 'pending';
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Work Progress</h2>
-              <p className="text-purple-100 mt-1">{job.title}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex h-[calc(90vh-120px)]">
-          {/* Left Panel - Job Details & Service Provider Info */}
-          <div className="w-1/3 bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
-            {/* Job Details */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Details</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Service:</span>
-                  <span>{job.serviceType}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Budget:</span>
-                  <span>{job.budget}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Timeline:</span>
-                  <span>{job.timeline}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MapPin className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Location:</span>
-                  <span>{job.location}</span>
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-sm text-gray-700">{job.description}</p>
-              </div>
-            </div>
-
-            {/* Service Provider Info */}
-            <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Service Provider</h3>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{bid.bidderInfo?.name}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">{bid.bidderInfo?.email}</span>
-                </div>
-                {bid.bidderInfo?.phone && (
-                  <div className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">{bid.bidderInfo.phone}</span>
-                  </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm font-medium">Bid: ${bid.amount}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">Timeline: {bid.timeline}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Current Status */}
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Current Status</h3>
+        <div className="flex items-center justify-between p-6 border-b">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Job Progress</h2>
+            <p className="text-sm text-gray-600">{job?.title}</p>
+            <div className="flex items-center space-x-4 mt-2">
               <div className="flex items-center space-x-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
-                  {job.status.replace('_', ' ').toUpperCase()}
+                {getStatusIcon(latestStatus)}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(latestStatus)}`}>
+                  {latestStatus.replace('_', ' ')}
                 </span>
               </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-32 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${overallProgress}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm text-gray-600">{overallProgress}%</span>
+              </div>
             </div>
           </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
 
-          {/* Right Panel - Progress Updates */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Progress Updates</h3>
-              <div className="text-sm text-gray-500">
-                {progressUpdates.filter(update => !update.isRead).length} unread
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="flex border-b">
+          <button
+            onClick={() => setActiveTab('progress')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'progress'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Progress Updates
+          </button>
+          <button
+            onClick={() => setActiveTab('conversation')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'conversation'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 inline mr-2" />
+            Conversation
+          </button>
+        </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <p className="text-red-600">{error}</p>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'progress' && (
+            <div className="h-full flex flex-col">
+              {/* Progress Summary */}
+              <div className="p-6 border-b bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">{overallProgress}%</div>
+                    <div className="text-sm text-gray-600">Overall Progress</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">{progressUpdates.length}</div>
+                    <div className="text-sm text-gray-600">Total Updates</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {progressUpdates.filter(u => u.status === 'completed').length}
+                    </div>
+                    <div className="text-sm text-gray-600">Completed Tasks</div>
+                  </div>
+                </div>
+                
+                {/* Internal Notes Toggle */}
+                <div className="mt-4 flex items-center justify-center">
+                  <button
+                    onClick={() => setShowInternalNotes(!showInternalNotes)}
+                    className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    {showInternalNotes ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <span>
+                      {showInternalNotes ? 'Hide' : 'Show'} Internal Notes
+                    </span>
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Loading State */}
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {progressUpdates.map((update) => (
-                  <div
-                    key={update._id}
-                    className={`p-4 rounded-lg border ${getUpdateColor(update.type)} ${
-                      !update.isRead ? 'ring-2 ring-blue-200' : ''
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        {getUpdateIcon(update.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold text-gray-900">
-                            {update.title}
-                          </h4>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs text-gray-500">
-                              {formatDate(update.createdAt)}
-                            </span>
-                            {!update.isRead && (
-                              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                            )}
+              {/* Progress Updates List */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Progress History</h3>
+                {loading && progressUpdates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-500">Loading progress updates...</p>
+                  </div>
+                ) : visibleUpdates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No progress updates yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {visibleUpdates.map((update) => (
+                      <div key={update._id} className={`border rounded-lg p-4 ${update.isInternal ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getStatusIcon(update.status)}
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-medium text-gray-900">{update.title}</h4>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(update.status)}`}>
+                                  {update.status.replace('_', ' ')}
+                                </span>
+                                {update.isInternal && (
+                                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                    Internal
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{update.description}</p>
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                <span className="flex items-center">
+                                  <User className="w-3 h-3 mr-1" />
+                                  {update.updatedByName}
+                                </span>
+                                <span className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  {new Date(update.timestamp).toLocaleString()}
+                                </span>
+                                <span>Progress: {update.progress}%</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-700 mb-3">{update.content}</p>
-                        
-                        {/* Files */}
-                        {update.files && update.files.length > 0 && (
-                          <div className="mb-3">
-                            <div className="flex flex-wrap gap-2">
-                              {update.files.map((file, index) => (
-                                <div
+                        {update.attachments && update.attachments.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-600">Attachments:</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {update.attachments.map((attachment, index) => (
+                                <a
                                   key={index}
-                                  className="flex items-center space-x-2 px-3 py-1 bg-white rounded-lg border border-gray-200"
+                                  href={attachment}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
                                 >
-                                  {update.type === 'photo' ? (
-                                    <Image className="w-4 h-4 text-orange-600" />
-                                  ) : (
-                                    <FileText className="w-4 h-4 text-purple-600" />
-                                  )}
-                                  <span className="text-sm text-gray-700">{file}</span>
-                                  <button className="text-blue-600 hover:text-blue-800">
-                                    <Download className="w-4 h-4" />
-                                  </button>
-                                </div>
+                                  <Paperclip className="w-3 h-3 inline mr-1" />
+                                  Attachment {index + 1}
+                                </a>
                               ))}
                             </div>
                           </div>
                         )}
-
-                        {/* Status Badge */}
-                        {update.status && (
-                          <div className="mb-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(update.status)}`}>
-                              {update.status.replace('_', ' ').toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-2">
-                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            <Eye className="w-4 h-4 inline mr-1" />
-                            View Details
-                          </button>
-                          {update.type === 'photo' && (
-                            <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                              <ThumbsUp className="w-4 h-4 inline mr-1" />
-                              Approve
-                            </button>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* No Updates Message */}
-                {progressUpdates.length === 0 && (
-                  <div className="text-center py-12">
-                    <div className="text-gray-400 text-6xl mb-4">📝</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No updates yet</h3>
-                    <p className="text-gray-500">Progress updates will appear here as the work progresses.</p>
+                    ))}
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Message Input */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Send Message to Service Provider</h4>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message here..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || sendingMessage}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 flex items-center space-x-2"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{sendingMessage ? 'Sending...' : 'Send'}</span>
-                </button>
+          {activeTab === 'conversation' && (
+            <div className="h-full flex flex-col">
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Conversation with Service Provider</h3>
+                  {job.status === 'completed' && (
+                    <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Job Completed</span>
+                    </div>
+                  )}
+                </div>
+                {conversation?.messages?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {conversation?.messages?.map((message: WorkProgressMessage) => (
+                      <div
+                        key={message._id}
+                        className={`flex ${message.senderType === 'homeowner' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            message.senderType === 'homeowner'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.senderType === 'homeowner' ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {message.senderName} • {new Date(message.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Message Form */}
+              <div className="border-t p-4 bg-gray-50">
+                <form onSubmit={handleMessageSubmit} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={messageForm.content}
+                    onChange={(e) => setMessageForm(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Type your message..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !messageForm.content.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 m-4 rounded">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default JobProgressView;

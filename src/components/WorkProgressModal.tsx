@@ -1,280 +1,462 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  CheckCircle, 
   Clock, 
-  User, 
-  DollarSign, 
-  Calendar,
-  MapPin,
+  CheckCircle, 
+  AlertCircle, 
+  Pause, 
+  XCircle,
   MessageSquare,
-  Phone,
-  Mail,
-  Briefcase,
-  AlertCircle,
-  Upload
+  Paperclip,
+  Send,
+  Calendar,
+  User
 } from 'lucide-react';
 import apiService from '../services/api';
-import { Job, Bid } from '../models/Job';
+import { WorkProgressUpdate, WorkProgressMessage, CreateProgressUpdateRequest, CreateMessageRequest } from '../models/WorkProgress';
 
 interface WorkProgressModalProps {
-  job: Job;
-  bid: Bid;
   isOpen: boolean;
   onClose: () => void;
-  onStatusUpdate: (jobId: string, status: string) => void;
+  job: any;
+  bid: any;
+  currentUserId: string;
+  userType: 'homeowner' | 'service_provider';
 }
 
-export default function WorkProgressModal({
-  job,
-  bid,
+const WorkProgressModal: React.FC<WorkProgressModalProps> = ({
   isOpen,
   onClose,
-  onStatusUpdate
-}: WorkProgressModalProps) {
+  job,
+  bid,
+  currentUserId,
+  userType
+}) => {
+  const [activeTab, setActiveTab] = useState<'progress' | 'conversation'>('progress');
+  const [progressUpdates, setProgressUpdates] = useState<WorkProgressUpdate[]>([]);
+  const [conversation, setConversation] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [progressNotes, setProgressNotes] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState(job.status);
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  // Progress form state
+  const [progressForm, setProgressForm] = useState({
+    status: 'in_progress' as WorkProgressUpdate['status'],
+    progress: 0,
+    title: '',
+    description: '',
+    isInternal: false
+  });
+
+  // Message form state
+  const [messageForm, setMessageForm] = useState({
+    content: '',
+    attachments: [] as string[]
+  });
+
+  useEffect(() => {
+    if (isOpen && job?._id && bid?._id) {
+      fetchProgressUpdates();
+      fetchConversation();
+    }
+  }, [isOpen, job?._id, bid?._id]);
+
+  const fetchProgressUpdates = async () => {
     try {
       setLoading(true);
-      setError('');
-      
-      const response = await apiService.updateJobStatus(job._id, newStatus);
+      const response = await apiService.getBidProgress(bid._id);
       if (response.success) {
-        onStatusUpdate(job._id, newStatus);
-        onClose();
+        setProgressUpdates(response.data || []);
       } else {
-        setError(response.error || 'Failed to update job status');
+        setError(response.error || 'Failed to fetch progress updates');
       }
     } catch (err) {
       setError('Network error. Please try again.');
-      console.error('Error updating job status:', err);
+      console.error('Error fetching progress updates:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchConversation = async () => {
+    try {
+      const response = await apiService.getConversation(job._id, bid._id);
+      if (response.success) {
+        setConversation(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching conversation:', err);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'in_progress': return <Clock className="w-5 h-5" />;
-      case 'completed': return <CheckCircle className="w-5 h-5" />;
-      default: return <Briefcase className="w-5 h-5" />;
+  const handleProgressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const updateData: CreateProgressUpdateRequest = {
+        jobId: job._id,
+        bidId: bid._id,
+        ...progressForm
+      };
+
+      const response = await apiService.createProgressUpdate(updateData);
+      if (response.success) {
+        setProgressUpdates(prev => [response.data, ...prev]);
+        setProgressForm({
+          status: 'in_progress',
+          progress: progressForm.progress,
+          title: '',
+          description: '',
+          isInternal: false
+        });
+      } else {
+        setError(response.error || 'Failed to create progress update');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error creating progress update:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handleMessageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageForm.content.trim()) return;
+
+    try {
+      setLoading(true);
+      const messageData: CreateMessageRequest = {
+        jobId: job._id,
+        bidId: bid._id,
+        content: messageForm.content,
+        attachments: messageForm.attachments
+      };
+
+      const response = await apiService.sendMessage(messageData);
+      if (response.success) {
+        setMessageForm({ content: '', attachments: [] });
+        fetchConversation(); // Refresh conversation
+      } else {
+        setError(response.error || 'Failed to send message');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error sending message:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const canUpdateStatus = (currentStatus: string, newStatus: string) => {
-    // Service providers can only update from in_progress to completed
-    return currentStatus === 'in_progress' && newStatus === 'completed';
+  const getStatusIcon = (status: WorkProgressUpdate['status']) => {
+    switch (status) {
+      case 'in_progress':
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'on_hold':
+        return <Pause className="w-4 h-4 text-yellow-500" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'needs_attention':
+        return <AlertCircle className="w-4 h-4 text-orange-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status: WorkProgressUpdate['status']) => {
+    switch (status) {
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'on_hold':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'needs_attention':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Work Progress</h2>
-              <p className="text-green-100 mt-1">{job.title}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+        <div className="flex items-center justify-between p-6 border-b">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Work Progress</h2>
+            <p className="text-sm text-gray-600">{job?.title}</p>
           </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Job Details */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <Briefcase className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Service:</span>
-                <span>{job.serviceType}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Budget:</span>
-                <span>{job.budget}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Timeline:</span>
-                <span>{job.timeline}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Location:</span>
-                <span>{job.location}</span>
-              </div>
-            </div>
-            <div className="mt-3">
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">Description:</span> {job.description}
-              </p>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b">
+          <button
+            onClick={() => setActiveTab('progress')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'progress'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Progress Updates
+          </button>
+          <button
+            onClick={() => setActiveTab('conversation')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'conversation'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 inline mr-2" />
+            Conversation
+          </button>
+        </div>
 
-          {/* Your Bid Details */}
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-green-800 mb-3">Your Accepted Bid</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                <span className="font-medium">Your Bid:</span>
-                <span className="text-green-700 font-semibold">${bid.amount}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-green-600" />
-                <span className="font-medium">Your Timeline:</span>
-                <span className="text-green-700">{bid.timeline}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-green-600" />
-                <span className="font-medium">Bid Submitted:</span>
-                <span className="text-green-700">{formatDate(bid.createdAt)}</span>
-              </div>
-            </div>
-            {bid.description && (
-              <div className="mt-3 p-3 bg-white rounded-lg">
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">Your Proposal:</span> {bid.description}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Client Information */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3">Client Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <User className="w-4 h-4 text-blue-600" />
-                <span className="font-medium">Name:</span>
-                <span className="text-blue-700">{job.posterInfo?.name}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-blue-600" />
-                <span className="font-medium">Email:</span>
-                <span className="text-blue-700">{job.posterInfo?.email}</span>
-              </div>
-              {job.posterInfo?.phone && (
-                <div className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">Phone:</span>
-                  <span className="text-blue-700">{job.posterInfo.phone}</span>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'progress' && (
+            <div className="h-full flex flex-col">
+              {/* Progress Form (Service Provider Only) */}
+              {userType === 'service_provider' && (
+                <div className="p-6 border-b bg-gray-50">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Add Progress Update</h3>
+                  <form onSubmit={handleProgressSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Status
+                        </label>
+                        <select
+                          value={progressForm.status}
+                          onChange={(e) => setProgressForm(prev => ({ ...prev, status: e.target.value as WorkProgressUpdate['status'] }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="in_progress">In Progress</option>
+                          <option value="on_hold">On Hold</option>
+                          <option value="completed">Completed</option>
+                          <option value="needs_attention">Needs Attention</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Progress: {progressForm.progress}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={progressForm.progress}
+                          onChange={(e) => setProgressForm(prev => ({ ...prev, progress: parseInt(e.target.value) }))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={progressForm.title}
+                        onChange={(e) => setProgressForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Brief title for this update"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={progressForm.description}
+                        onChange={(e) => setProgressForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Detailed description of the work progress"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="isInternal"
+                        checked={progressForm.isInternal}
+                        onChange={(e) => setProgressForm(prev => ({ ...prev, isInternal: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="isInternal" className="ml-2 text-sm text-gray-700">
+                        Internal note (not visible to homeowner)
+                      </label>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                      {loading ? 'Adding Update...' : 'Add Progress Update'}
+                    </button>
+                  </form>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Current Status */}
-          <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Current Status</h3>
-            <div className="flex items-center space-x-3">
-              {getStatusIcon(job.status)}
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
-                {job.status.replace('_', ' ').toUpperCase()}
-              </span>
-            </div>
-          </div>
-
-          {/* Status Update Section */}
-          {job.status === 'in_progress' && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-3">Update Work Status</h3>
-              
-              {/* Progress Notes */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Progress Notes (Optional)
-                </label>
-                <textarea
-                  value={progressNotes}
-                  onChange={(e) => setProgressNotes(e.target.value)}
-                  placeholder="Add any notes about your progress, materials used, or updates for the client..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  rows={3}
-                />
-              </div>
-
-              {/* Status Update Button */}
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => handleStatusUpdate('completed')}
-                  disabled={loading}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  <span>{loading ? 'Updating...' : 'Mark as Completed'}</span>
-                </button>
+              {/* Progress Updates List */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Progress History</h3>
+                {loading && progressUpdates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-500">Loading progress updates...</p>
+                  </div>
+                ) : progressUpdates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No progress updates yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {progressUpdates.map((update) => (
+                      <div key={update._id} className={`border rounded-lg p-4 ${update.isInternal ? 'bg-yellow-50 border-yellow-200' : 'bg-white'}`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getStatusIcon(update.status)}
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-medium text-gray-900">{update.title}</h4>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(update.status)}`}>
+                                  {update.status.replace('_', ' ')}
+                                </span>
+                                {update.isInternal && (
+                                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                    Internal
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{update.description}</p>
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                <span className="flex items-center">
+                                  <User className="w-3 h-3 mr-1" />
+                                  {update.updatedByName}
+                                </span>
+                                <span className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  {new Date(update.timestamp).toLocaleString()}
+                                </span>
+                                <span>Progress: {update.progress}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {update.attachments && update.attachments.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-600">Attachments:</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {update.attachments.map((attachment, index) => (
+                                <a
+                                  key={index}
+                                  href={attachment}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  <Paperclip className="w-3 h-3 inline mr-1" />
+                                  Attachment {index + 1}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Completed Status */}
-          {job.status === 'completed' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <div>
-                  <h3 className="text-lg font-semibold text-green-800">Work Completed</h3>
-                  <p className="text-green-700 text-sm">Great job! This work has been marked as completed.</p>
-                </div>
+          {activeTab === 'conversation' && (
+            <div className="h-full flex flex-col">
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Conversation</h3>
+                {conversation?.messages?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {conversation?.messages?.map((message: WorkProgressMessage) => (
+                      <div
+                        key={message._id}
+                        className={`flex ${message.senderType === userType ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            message.senderType === userType
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.senderType === userType ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {message.senderName} • {new Date(message.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Message Form */}
+              <div className="border-t p-4 bg-gray-50">
+                <form onSubmit={handleMessageSubmit} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={messageForm.content}
+                    onChange={(e) => setMessageForm(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Type your message..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !messageForm.content.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             </div>
           )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <p className="text-red-600">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-            >
-              Close
-            </button>
-          </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 m-4 rounded">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default WorkProgressModal;

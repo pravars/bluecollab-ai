@@ -43,11 +43,25 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
   const [selectedBidForPayment, setSelectedBidForPayment] = useState<any>(null);
   const [escrowModalOpen, setEscrowModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [showCompletionNotification, setShowCompletionNotification] = useState(false);
 
   // Fetch user's jobs
   useEffect(() => {
     fetchUserJobs();
   }, [userId]);
+
+  // Check for completed jobs and show notification
+  useEffect(() => {
+    const completedJobs = jobs.filter(job => job.status === 'completed' && !job.payment);
+    if (completedJobs.length > 0) {
+      setShowCompletionNotification(true);
+      // Auto-hide notification after 10 seconds
+      const timer = setTimeout(() => {
+        setShowCompletionNotification(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [jobs]);
 
   const fetchUserJobs = async () => {
     try {
@@ -304,6 +318,27 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
             </div>
           </div>
 
+          {/* Completion Notification */}
+          {showCompletionNotification && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800">Job Completed!</h3>
+                  <p className="text-green-700">
+                    You have completed jobs ready for payment. Click "Pay Now" to process payment.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCompletionNotification(false)}
+                className="text-green-600 hover:text-green-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
           {/* Jobs List */}
           <div className="bg-white rounded-2xl shadow-lg">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -360,6 +395,12 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(job.status)}`}>
                             {job.status.replace('-', ' ').toUpperCase()}
                           </span>
+                          {job.status === 'completed' && (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center space-x-1">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>READY FOR PAYMENT</span>
+                            </span>
+                          )}
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(job.urgency)}`}>
                             {job.urgency.toUpperCase()} PRIORITY
                           </span>
@@ -408,7 +449,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                         <Settings className="w-4 h-4" />
                         <span>Manage Bids ({Array.isArray(job.bids) ? job.bids.length : 0})</span>
                       </button>
-                      {job.status === 'in_progress' && (
+                      {(job.status === 'in_progress' || job.status === 'completed') && (
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -420,7 +461,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                           <span>View Progress</span>
                         </button>
                       )}
-                      {job.status === 'accepted' && !job.payment && (
+                      {(job.status === 'accepted' || job.status === 'completed') && !job.payment && (
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -429,10 +470,14 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
                               handleMakePayment(job, acceptedBid);
                             }
                           }}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                          className={`px-4 py-2 text-white rounded-lg font-semibold transition-colors flex items-center space-x-2 ${
+                            job.status === 'completed' 
+                              ? 'bg-green-700 hover:bg-green-800' 
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
                         >
                           <DollarSign className="w-4 h-4" />
-                          <span>Make Payment</span>
+                          <span>{job.status === 'completed' ? 'Pay Now' : 'Make Payment'}</span>
                         </button>
                       )}
                       {job.payment && (
@@ -527,7 +572,7 @@ export default function JobPosterDashboard({ onBack, userId }: JobPosterDashboar
             setSelectedJobForProgress(null);
             setSelectedBidForProgress(null);
           }}
-          onStatusUpdate={handleJobStatusUpdate}
+          currentUserId={userId}
         />
       )}
 

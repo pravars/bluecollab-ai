@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_...', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51234567890abcdef', {
   apiVersion: '2023-10-16',
 });
 
@@ -721,6 +721,31 @@ app.put('/api/jobs/:id/status', async (req, res) => {
 
 // ==================== BIDDING ENDPOINTS ====================
 
+// Get all bids (for admin/testing)
+app.get('/api/bids', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const bids = await db.collection('bids').find({}).toArray();
+    
+    res.json({
+      success: true,
+      data: bids
+    });
+  } catch (error) {
+    console.error('Error fetching bids:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bids'
+    });
+  }
+});
+
 // Create a new bid
 app.post('/api/bids', async (req, res) => {
   try {
@@ -732,6 +757,8 @@ app.post('/api/bids', async (req, res) => {
     }
 
     const { jobId, bidderId, amount, timeline, description } = req.body;
+
+    console.log('Bid creation request:', { jobId, bidderId, amount, timeline, description });
 
     // Validate required fields
     if (!jobId || !bidderId || !amount || !timeline) {
@@ -771,7 +798,9 @@ app.post('/api/bids', async (req, res) => {
     }
 
     // Get bidder information
+    console.log('Looking for bidder with ID:', bidderId);
     const bidder = await db.collection('users').findOne({ _id: new ObjectId(bidderId) });
+    console.log('Bidder found:', bidder ? 'Yes' : 'No');
     if (!bidder) {
       return res.status(404).json({
         success: false,
@@ -1293,6 +1322,364 @@ app.get('/api/payments/status/:paymentId', authenticateToken, async (req, res) =
     res.status(500).json({
       success: false,
       error: 'Failed to fetch payment status'
+    });
+  }
+});
+
+// ==================== WORK PROGRESS ENDPOINTS ====================
+
+// Create a work progress update
+app.post('/api/work-progress', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { jobId, bidId, status, progress, title, description, attachments, isInternal } = req.body;
+    const { ObjectId } = await import('mongodb');
+
+    // Validate required fields
+    if (!jobId || !bidId || !status || progress === undefined || !title || !description) {
+      return res.status(400).json({
+        success: false,
+        error: 'Job ID, bid ID, status, progress, title, and description are required'
+      });
+    }
+
+    // Get the user making the update (from token or request)
+    const userId = req.user?.id || req.body.updatedBy || req.body.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required. Please provide userId in request body.'
+      });
+    }
+
+    // Get user information
+    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify the job and bid exist
+    const job = await db.collection('jobs').findOne({ _id: new ObjectId(jobId) });
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found'
+      });
+    }
+
+    const bid = await db.collection('bids').findOne({ _id: new ObjectId(bidId) });
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bid not found'
+      });
+    }
+
+    // Create progress update
+    const progressUpdate = {
+      jobId,
+      bidId,
+      updatedBy: userId,
+      updatedByName: `${user.firstName} ${user.lastName}`,
+      status,
+      progress: Math.max(0, Math.min(100, progress)), // Clamp between 0-100
+      title,
+      description,
+      attachments: attachments || [],
+      timestamp: new Date(),
+      isInternal: isInternal || false
+    };
+
+    const result = await db.collection('work_progress').insertOne(progressUpdate);
+
+    // Update job status if it's a status change
+    if (status === 'completed') {
+      await db.collection('jobs').updateOne(
+        { _id: new ObjectId(jobId) },
+        { $set: { status: 'completed', updatedAt: new Date() } }
+      );
+    } else if (status === 'in_progress' && job.status === 'accepted') {
+      await db.collection('jobs').updateOne(
+        { _id: new ObjectId(jobId) },
+        { $set: { status: 'in_progress', updatedAt: new Date() } }
+      );
+    }
+
+    res.json({
+      success: true,
+      data: { ...progressUpdate, _id: result.insertedId },
+      message: 'Progress update created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating progress update:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create progress update'
+    });
+  }
+});
+
+// Get work progress for a job
+app.get('/api/work-progress/job/:jobId', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { jobId } = req.params;
+    const { ObjectId } = await import('mongodb');
+
+    const progressUpdates = await db.collection('work_progress')
+      .find({ jobId })
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    res.json({
+      success: true,
+      data: progressUpdates
+    });
+  } catch (error) {
+    console.error('Error fetching work progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch work progress'
+    });
+  }
+});
+
+// Get work progress for a specific bid
+app.get('/api/work-progress/bid/:bidId', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { bidId } = req.params;
+    const { ObjectId } = await import('mongodb');
+
+    const progressUpdates = await db.collection('work_progress')
+      .find({ bidId })
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    res.json({
+      success: true,
+      data: progressUpdates
+    });
+  } catch (error) {
+    console.error('Error fetching work progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch work progress'
+    });
+  }
+});
+
+// ==================== CONVERSATION ENDPOINTS ====================
+
+// Create or get conversation for a job
+app.get('/api/conversations/job/:jobId/bid/:bidId', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { jobId, bidId } = req.params;
+    const { ObjectId } = await import('mongodb');
+
+    // Find existing conversation
+    let conversation = await db.collection('conversations').findOne({ jobId, bidId });
+
+    if (!conversation) {
+      // Get job and bid to find participants
+      const job = await db.collection('jobs').findOne({ _id: new ObjectId(jobId) });
+      const bid = await db.collection('bids').findOne({ _id: new ObjectId(bidId) });
+
+      if (!job || !bid) {
+        return res.status(404).json({
+          success: false,
+          error: 'Job or bid not found'
+        });
+      }
+
+      // Create new conversation
+      conversation = {
+        jobId,
+        bidId,
+        messages: [],
+        lastMessageAt: new Date(),
+        participants: {
+          homeowner: job.postedBy,
+          serviceProvider: bid.bidderId
+        }
+      };
+
+      const result = await db.collection('conversations').insertOne(conversation);
+      conversation._id = result.insertedId;
+    }
+
+    res.json({
+      success: true,
+      data: conversation
+    });
+  } catch (error) {
+    console.error('Error getting conversation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get conversation'
+    });
+  }
+});
+
+// Send a message in conversation
+app.post('/api/conversations/message', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected'
+      });
+    }
+
+    const { jobId, bidId, content, attachments } = req.body;
+    const { ObjectId } = await import('mongodb');
+
+    // Get the user sending the message
+    const userId = req.user?.id || req.body.senderId || req.body.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required. Please provide userId in request body.'
+      });
+    }
+
+    // Get user information
+    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Get or create conversation
+    let conversation = await db.collection('conversations').findOne({ jobId, bidId });
+    if (!conversation) {
+      // Create conversation first
+      const job = await db.collection('jobs').findOne({ _id: new ObjectId(jobId) });
+      const bid = await db.collection('bids').findOne({ _id: new ObjectId(bidId) });
+
+      if (!job || !bid) {
+        return res.status(404).json({
+          success: false,
+          error: 'Job or bid not found'
+        });
+      }
+
+      conversation = {
+        jobId,
+        bidId,
+        messages: [],
+        lastMessageAt: new Date(),
+        participants: {
+          homeowner: job.postedBy,
+          serviceProvider: bid.bidderId
+        }
+      };
+
+      const result = await db.collection('conversations').insertOne(conversation);
+      conversation._id = result.insertedId;
+    }
+
+    // Create message
+    const message = {
+      _id: new ObjectId(),
+      senderId: userId,
+      senderName: `${user.firstName} ${user.lastName}`,
+      senderType: user.userType === 'homeowner' ? 'homeowner' : 'service_provider',
+      content,
+      timestamp: new Date(),
+      attachments: attachments || [],
+      isRead: false
+    };
+
+    // Add message to conversation
+    await db.collection('conversations').updateOne(
+      { _id: conversation._id },
+      {
+        $push: { messages: message },
+        $set: { lastMessageAt: new Date() }
+      }
+    );
+
+    res.json({
+      success: true,
+      data: message,
+      message: 'Message sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send message'
+    });
+  }
+});
+
+// ==================== ADMIN ENDPOINTS ====================
+
+// Clear all users (for testing)
+app.delete('/api/admin/clear-all-users', async (req, res) => {
+  try {
+    // Delete all users
+    const userResult = await db.collection('users').deleteMany({});
+    
+    // Delete all jobs
+    const jobResult = await db.collection('jobs').deleteMany({});
+    
+    // Delete all bids
+    const bidResult = await db.collection('bids').deleteMany({});
+    
+    // Delete all payments
+    const paymentResult = await db.collection('payments').deleteMany({});
+    
+    // Delete all escrow accounts
+    const escrowResult = await db.collection('escrow_accounts').deleteMany({});
+
+    res.json({
+      success: true,
+      message: 'All data cleared successfully',
+      deleted: {
+        users: userResult.deletedCount,
+        jobs: jobResult.deletedCount,
+        bids: bidResult.deletedCount,
+        payments: paymentResult.deletedCount,
+        escrowAccounts: escrowResult.deletedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error clearing all data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear data'
     });
   }
 });

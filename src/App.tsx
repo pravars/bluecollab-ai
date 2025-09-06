@@ -305,6 +305,8 @@ export default function App() {
   }
 
   if (currentView === 'provider-dashboard') {
+    console.log('App.tsx - Rendering ServiceProviderDashboard with user:', user);
+    console.log('App.tsx - User ID being passed:', user?._id || '');
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
