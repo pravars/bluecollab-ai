@@ -4,187 +4,187 @@ services:
   # MongoDB Replica Set for Production Scaling
   mongodb-primary:
     image: mongo:7.0
-    container_name: dwello-mongodb-primary
+    container_name: bluecollab-ai-mongodb-primary
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
-      MONGO_INITDB_DATABASE: dwello
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
+      MONGO_INITDB_DATABASE: bluecollab-ai
     volumes:
       - mongodb_primary_data:/data/db
       - mongodb_primary_config:/data/configdb
       - ./database/mongodb-init.js:/docker-entrypoint-initdb.d/mongodb-init.js:ro
-    command: mongod --replSet dwello-rs --bind_ip_all --auth
+    command: mongod --replSet bluecollab-ai-rs --bind_ip_all --auth
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   mongodb-secondary-1:
     image: mongo:7.0
-    container_name: dwello-mongodb-secondary-1
+    container_name: bluecollab-ai-mongodb-secondary-1
     restart: unless-stopped
     ports:
       - "27018:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_secondary1_data:/data/db
       - mongodb_secondary1_config:/data/configdb
-    command: mongod --replSet dwello-rs --bind_ip_all --auth
+    command: mongod --replSet bluecollab-ai-rs --bind_ip_all --auth
     depends_on:
       - mongodb-primary
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   mongodb-secondary-2:
     image: mongo:7.0
-    container_name: dwello-mongodb-secondary-2
+    container_name: bluecollab-ai-mongodb-secondary-2
     restart: unless-stopped
     ports:
       - "27019:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_secondary2_data:/data/db
       - mongodb_secondary2_config:/data/configdb
-    command: mongod --replSet dwello-rs --bind_ip_all --auth
+    command: mongod --replSet bluecollab-ai-rs --bind_ip_all --auth
     depends_on:
       - mongodb-primary
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   mongodb-arbiter:
     image: mongo:7.0
-    container_name: dwello-mongodb-arbiter
+    container_name: bluecollab-ai-mongodb-arbiter
     restart: unless-stopped
     ports:
       - "27020:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_arbiter_data:/data/db
-    command: mongod --replSet dwello-rs --bind_ip_all --auth
+    command: mongod --replSet bluecollab-ai-rs --bind_ip_all --auth
     depends_on:
       - mongodb-primary
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   # MongoDB Config Server (for sharding)
   mongodb-config-1:
     image: mongo:7.0
-    container_name: dwello-mongodb-config-1
+    container_name: bluecollab-ai-mongodb-config-1
     restart: unless-stopped
     ports:
       - "27021:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_config1_data:/data/db
-    command: mongod --configsvr --replSet dwello-config-rs --bind_ip_all --auth
+    command: mongod --configsvr --replSet bluecollab-ai-config-rs --bind_ip_all --auth
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   mongodb-config-2:
     image: mongo:7.0
-    container_name: dwello-mongodb-config-2
+    container_name: bluecollab-ai-mongodb-config-2
     restart: unless-stopped
     ports:
       - "27022:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_config2_data:/data/db
-    command: mongod --configsvr --replSet dwello-config-rs --bind_ip_all --auth
+    command: mongod --configsvr --replSet bluecollab-ai-config-rs --bind_ip_all --auth
     depends_on:
       - mongodb-config-1
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   mongodb-config-3:
     image: mongo:7.0
-    container_name: dwello-mongodb-config-3
+    container_name: bluecollab-ai-mongodb-config-3
     restart: unless-stopped
     ports:
       - "27023:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
     volumes:
       - mongodb_config3_data:/data/db
-    command: mongod --configsvr --replSet dwello-config-rs --bind_ip_all --auth
+    command: mongod --configsvr --replSet bluecollab-ai-config-rs --bind_ip_all --auth
     depends_on:
       - mongodb-config-1
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   # MongoDB Router (mongos)
   mongodb-router:
     image: mongo:7.0
-    container_name: dwello-mongodb-router
+    container_name: bluecollab-ai-mongodb-router
     restart: unless-stopped
     ports:
       - "27024:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: dwello123
-    command: mongos --configdb dwello-config-rs/mongodb-config-1:27017,mongodb-config-2:27017,mongodb-config-3:27017 --bind_ip_all
+      MONGO_INITDB_ROOT_PASSWORD: bluecollab-ai123
+    command: mongos --configdb bluecollab-ai-config-rs/mongodb-config-1:27017,mongodb-config-2:27017,mongodb-config-3:27017 --bind_ip_all
     depends_on:
       - mongodb-config-1
       - mongodb-config-2
       - mongodb-config-3
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   # Redis for Caching
   redis:
     image: redis:7.2-alpine
-    container_name: dwello-redis
+    container_name: bluecollab-ai-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass dwello123
+    command: redis-server --appendonly yes --requirepass bluecollab-ai123
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   # MongoDB Express (Web UI)
   mongo-express:
     image: mongo-express:1.0.0
-    container_name: dwello-mongo-express
+    container_name: bluecollab-ai-mongo-express
     restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: dwello123
-      ME_CONFIG_MONGODB_URL: mongodb://admin:dwello123@mongodb-primary:27017/
+      ME_CONFIG_MONGODB_ADMINPASSWORD: bluecollab-ai123
+      ME_CONFIG_MONGODB_URL: mongodb://admin:bluecollab-ai123@mongodb-primary:27017/
       ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: dwello123
+      ME_CONFIG_BASICAUTH_PASSWORD: bluecollab-ai123
     depends_on:
       - mongodb-primary
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
   # Redis Commander (Web UI for Redis)
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: dwello-redis-commander
+    container_name: bluecollab-ai-redis-commander
     restart: unless-stopped
     ports:
       - "8082:8081"
     environment:
-      REDIS_HOSTS: local:redis:6379:0:dwello123
+      REDIS_HOSTS: local:redis:6379:0:bluecollab-ai123
     depends_on:
       - redis
     networks:
-      - dwello-network
+      - bluecollab-ai-network
 
 volumes:
   mongodb_primary_data:
@@ -200,5 +200,5 @@ volumes:
   redis_data:
 
 networks:
-  dwello-network:
+  bluecollab-ai-network:
     driver: bridge

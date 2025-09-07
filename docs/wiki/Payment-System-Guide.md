@@ -1,7 +1,7 @@
 # Payment System Guide
 
 ## Overview
-The Dwello payment system provides secure payment processing for completed jobs with escrow functionality, ensuring both homeowners and service providers are protected throughout the transaction.
+The BlueCollab.ai payment system provides secure payment processing for completed jobs with escrow functionality, ensuring both homeowners and service providers are protected throughout the transaction.
 
 ## Features
 

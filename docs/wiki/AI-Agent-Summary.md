@@ -1,7 +1,7 @@
 # AI Agent Bidding System - Executive Summary
 
 ## 🎯 Vision
-Transform Dwello into an intelligent marketplace where service providers can leverage AI agents to automatically discover, analyze, and bid on relevant jobs, maximizing their success rate and profitability while reducing manual effort.
+Transform BlueCollab.ai into an intelligent marketplace where service providers can leverage AI agents to automatically discover, analyze, and bid on relevant jobs, maximizing their success rate and profitability while reducing manual effort.
 
 ## 🚀 Key Value Propositions
 

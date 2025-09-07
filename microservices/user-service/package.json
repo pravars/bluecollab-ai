@@ -1,7 +1,7 @@
 {
-  "name": "@dwello/user-service",
+  "name": "@bluecollab-ai/user-service",
   "version": "1.0.0",
-  "description": "User management microservice for Dwello platform",
+  "description": "User management microservice for BlueCollab.ai platform",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -46,7 +46,7 @@
     "microservice",
     "user-management",
     "authentication",
-    "dwello"
+    "bluecollab-ai"
   ],
   "author": "Pravar Srivastava",
   "license": "MIT"

@@ -154,8 +154,8 @@ db.jobs.insertOne({
     ]
   },
   photos: [
-    "https://storage.dwello.com/jobs/photo1.jpg",
-    "https://storage.dwello.com/jobs/photo2.jpg"
+    "https://storage.bluecollab-ai.com/jobs/photo1.jpg",
+    "https://storage.bluecollab-ai.com/jobs/photo2.jpg"
   ],
   isEmergency: false,
   createdAt: new Date(),
@@ -292,7 +292,7 @@ db.messages.insertOne({
   attachments: [
     {
       type: "image",
-      url: "https://storage.dwello.com/messages/attachment1.jpg",
+      url: "https://storage.bluecollab-ai.com/messages/attachment1.jpg",
       filename: "cabinet_photo.jpg",
       size: 1024000
     }
@@ -407,8 +407,8 @@ db.jobProgress.insertOne({
   progressPercentage: 75,
   statusDescription: "Priming completed, starting first coat of paint",
   photos: [
-    "https://storage.dwello.com/progress/photo1.jpg",
-    "https://storage.dwello.com/progress/photo2.jpg"
+    "https://storage.bluecollab-ai.com/progress/photo1.jpg",
+    "https://storage.bluecollab-ai.com/progress/photo2.jpg"
   ],
   notes: "All cabinets sanded and primed. Ready for paint application.",
   createdAt: new Date()

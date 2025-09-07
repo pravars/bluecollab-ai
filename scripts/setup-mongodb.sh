@@ -59,16 +59,16 @@ print_status "Waiting for MongoDB to be ready..."
 sleep 30
 
 # Check if MongoDB is running
-if ! docker ps | grep -q "dwello-mongodb-primary"; then
+if ! docker ps | grep -q "bluecollab-ai-mongodb-primary"; then
     print_error "MongoDB primary container is not running"
     exit 1
 fi
 
 # Initialize MongoDB
 print_status "Initializing MongoDB with schema and data..."
-docker exec dwello-mongodb-primary mongosh --eval "
+docker exec bluecollab-ai-mongodb-primary mongosh --eval "
 rs.initiate({
-  _id: 'dwello-rs',
+  _id: 'bluecollab-ai-rs',
   members: [
     { _id: 0, host: 'mongodb-primary:27017', priority: 2 },
     { _id: 1, host: 'mongodb-secondary-1:27017', priority: 1 },
@@ -84,14 +84,14 @@ sleep 20
 
 # Run initialization script
 print_status "Running MongoDB initialization script..."
-docker exec dwello-mongodb-primary mongosh --eval "
+docker exec bluecollab-ai-mongodb-primary mongosh --eval "
 load('/docker-entrypoint-initdb.d/mongodb-init.js')
 "
 
 # Verify setup
 print_status "Verifying MongoDB setup..."
-docker exec dwello-mongodb-primary mongosh --eval "
-use dwello;
+docker exec bluecollab-ai-mongodb-primary mongosh --eval "
+use bluecollab-ai;
 db.users.countDocuments();
 db.serviceCategories.countDocuments();
 db.systemSettings.countDocuments();
@@ -114,11 +114,11 @@ echo "  - MongoDB Express: http://localhost:8081"
 echo "  - Redis Commander: http://localhost:8082"
 echo ""
 echo "👤 Default Admin User:"
-echo "  - Email: admin@dwello.com"
+echo "  - Email: admin@bluecollab-ai.com"
 echo "  - Password: admin123"
 echo ""
 echo "🔗 Connection String:"
-echo "  mongodb://admin:dwello123@localhost:27017/dwello?replicaSet=dwello-rs"
+echo "  mongodb://admin:bluecollab-ai123@localhost:27017/bluecollab-ai?replicaSet=bluecollab-ai-rs"
 echo ""
 echo "Next steps:"
 echo "1. Update your .env file with the MongoDB connection string"

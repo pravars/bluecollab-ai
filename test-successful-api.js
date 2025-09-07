@@ -1,7 +1,7 @@
 // Successful API and Database Test for Dwello User Service
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = 'mongodb://admin:dwello123@localhost:27018/dwello?authSource=admin';
+const MONGODB_URI = 'mongodb://admin:bluecollab-ai123@localhost:27018/bluecollab-ai?authSource=admin';
 
 async function testSuccessfulOperations() {
   console.log('🧪 Testing Successful Database Operations...\n');
@@ -13,7 +13,7 @@ async function testSuccessfulOperations() {
     await client.connect();
     console.log('✅ Connected to MongoDB');
 
-    const db = client.db('dwello');
+    const db = client.db('bluecollab-ai');
     const usersCollection = db.collection('users');
 
     // Test 1: Count all users
@@ -99,14 +99,14 @@ async function testSuccessfulOperations() {
 
     // Test 8: Test specific user queries
     console.log('\n8. Testing specific user queries...');
-    const homeowner = await usersCollection.findOne({ email: 'homeowner@dwello.com' });
+    const homeowner = await usersCollection.findOne({ email: 'homeowner@bluecollab-ai.com' });
     if (homeowner) {
       console.log(`✅ Found homeowner: ${homeowner.firstName} ${homeowner.lastName}`);
       console.log(`   Bio: ${homeowner.profile?.bio}`);
       console.log(`   Specialties: ${homeowner.profile?.specialties?.join(', ')}`);
     }
 
-    const contractor = await usersCollection.findOne({ email: 'contractor@dwello.com' });
+    const contractor = await usersCollection.findOne({ email: 'contractor@bluecollab-ai.com' });
     if (contractor) {
       console.log(`✅ Found contractor: ${contractor.firstName} ${contractor.lastName}`);
       console.log(`   Company: ${contractor.profile?.companyName}`);
@@ -117,7 +117,7 @@ async function testSuccessfulOperations() {
     // Test 9: Test update operations
     console.log('\n9. Testing update operations...');
     const updateResult = await usersCollection.updateOne(
-      { email: 'homeowner@dwello.com' },
+      { email: 'homeowner@bluecollab-ai.com' },
       { 
         $set: { 
           'profile.bio': 'Updated bio - I need help with home repairs, maintenance, and renovations',
@@ -131,7 +131,7 @@ async function testSuccessfulOperations() {
     console.log('\n10. Testing data validation...');
     try {
       await usersCollection.insertOne({
-        email: 'invalid@dwello.com',
+        email: 'invalid@bluecollab-ai.com',
         // Missing required fields
         userType: 'homeowner'
       });
@@ -155,12 +155,12 @@ async function testSuccessfulOperations() {
     
     console.log('\n🌐 Access your database at: http://localhost:8081');
     console.log('   Username: admin');
-    console.log('   Password: dwello123');
+    console.log('   Password: bluecollab-ai123');
     
     console.log('\n📝 Test Data Created:');
-    console.log('   - 2 Homeowners (test@dwello.com, homeowner@dwello.com)');
-    console.log('   - 1 Service Provider (contractor@dwello.com)');
-    console.log('   - 1 Admin (admin@dwello.com)');
+    console.log('   - 2 Homeowners (test@bluecollab-ai.com, homeowner@bluecollab-ai.com)');
+    console.log('   - 1 Service Provider (contractor@bluecollab-ai.com)');
+    console.log('   - 1 Admin (admin@bluecollab-ai.com)');
     
     console.log('\n🚀 Your Dwello platform database is ready for development!');
     console.log('   - User management system working');

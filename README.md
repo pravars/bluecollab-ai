@@ -1,8 +1,8 @@
-# Dwello - AI-Powered Home Services Platform
+# BlueCollab.ai - AI-Powered Home Services Platform
 
-![Dwello Logo](https://via.placeholder.com/200x80/4F46E5/FFFFFF?text=Dwello)
+![BlueCollab.ai Logo](https://via.placeholder.com/200x80/4F46E5/FFFFFF?text=BlueCollab.ai)
 
-**Dwello** is a comprehensive home services platform that connects homeowners with service providers through an AI-enhanced bidding system. Built with React, Node.js, and MongoDB, it features real-time communication, work progress tracking, and integrated payment processing.
+**BlueCollab.ai** is a comprehensive home services platform that connects homeowners with service providers through an AI-enhanced bidding system. Built with React, Node.js, and MongoDB, it features real-time communication, work progress tracking, and integrated payment processing.
 
 ## 🚀 Features
 
@@ -62,8 +62,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/pravars/dwello.git
-cd dwello
+git clone https://github.com/pravars/bluecollab-ai.git
+cd bluecollab-ai
 ```
 
 ### 2. Install Dependencies
@@ -84,8 +84,8 @@ npm install
 Create a `.env` file in the root directory:
 ```env
 # Database
-MONGODB_URI=mongodb://localhost:27017/dwello
-MONGODB_DB_NAME=dwello
+MONGODB_URI=mongodb://localhost:27017/bluecollab-ai
+MONGODB_DB_NAME=bluecollab-ai
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -318,6 +318,6 @@ dwello/
 
 ---
 
-**Built with ❤️ by the Dwello Team**
+**Built with ❤️ by the BlueCollab.ai Team**
 
 *Connecting homeowners with trusted service providers through AI-powered technology.*

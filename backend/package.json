@@ -1,7 +1,7 @@
 {
-  "name": "dwello-backend",
+  "name": "bluecollab-ai-backend",
   "version": "1.0.0",
-  "description": "Backend API for Dwello platform",
+  "description": "Backend API for BlueCollab.ai platform",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
@@ -19,7 +19,8 @@
     "stripe": "^18.5.0"
   },
   "keywords": [
-    "dwello",
+    "bluecollab",
+    "bluecollab-ai",
     "api",
     "backend",
     "mongodb"

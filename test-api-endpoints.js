@@ -7,7 +7,7 @@ let authToken = '';
 // Test data
 const testUsers = [
   {
-    email: 'homeowner@dwello.com',
+    email: 'homeowner@bluecollab-ai.com',
     password: 'password123',
     firstName: 'John',
     lastName: 'Homeowner',
@@ -29,7 +29,7 @@ const testUsers = [
     }]
   },
   {
-    email: 'contractor@dwello.com',
+    email: 'contractor@bluecollab-ai.com',
     password: 'password123',
     firstName: 'Jane',
     lastName: 'Contractor',
@@ -313,7 +313,7 @@ async function runAllTests() {
   
   console.log('\n🌐 Access your database at: http://localhost:8081');
   console.log('   Username: admin');
-  console.log('   Password: dwello123');
+  console.log('   Password: bluecollab-ai123');
 }
 
 // Run the tests

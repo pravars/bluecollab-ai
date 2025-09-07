@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:dwello123@localhost:27018/dwello';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:bluecollab-ai123@localhost:27018/bluecollab-ai';
 
 export async function connectDatabase(): Promise<void> {
   try {

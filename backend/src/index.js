@@ -18,14 +18,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51234567890a
 });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:dwello123@localhost:27018/dwello?authSource=admin';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:bluecollab123@localhost:27018/bluecollab-ai?authSource=admin';
 let db = null;
 
 async function connectToDatabase() {
   try {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
-    db = client.db('dwello');
+    db = client.db('bluecollab-ai');
     console.log('✅ Connected to MongoDB');
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
@@ -1689,7 +1689,7 @@ async function startServer() {
   await connectToDatabase();
   
   app.listen(PORT, () => {
-    console.log(`🚀 Backend API server running on http://localhost:${PORT}`);
+    console.log(`🚀 BlueCollab.ai Backend API server running on http://localhost:${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
   });
 }

@@ -1,23 +1,23 @@
-// MongoDB Initialization Script for Dwello Platform
+// MongoDB Initialization Script for BlueCollab.ai Platform
 // This script sets up the database, collections, and initial data
 
-print('🚀 Starting Dwello MongoDB initialization...');
+print('🚀 Starting BlueCollab.ai MongoDB initialization...');
 
 // =============================================
 // DATABASE SETUP
 // =============================================
 
-// Switch to dwello database
-db = db.getSiblingDB('dwello');
+// Switch to bluecollab-ai database
+db = db.getSiblingDB('bluecollab-ai');
 
 // Create application user
 db.createUser({
-  user: 'dwello_app',
-  pwd: 'dwello_app_password',
+  user: 'bluecollab_app',
+  pwd: 'bluecollab_app_password',
   roles: [
     {
       role: 'readWrite',
-      db: 'dwello'
+      db: 'bluecollab-ai'
     }
   ]
 });

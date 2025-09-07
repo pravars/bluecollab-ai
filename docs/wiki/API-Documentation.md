@@ -2,7 +2,7 @@
 
 ## Base URL
 - **Development**: `http://localhost:3002`
-- **Production**: `https://api.dwello.com`
+- **Production**: `https://api.bluecollab-ai.com`
 
 ## Authentication
 All protected endpoints require a JWT token in the Authorization header:

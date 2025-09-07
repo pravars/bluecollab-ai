@@ -1,6 +1,6 @@
 // API service for communicating with the backend
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.dwello.com' 
+  ? 'https://api.bluecollab-ai.com' 
   : 'http://localhost:3002';
 
 console.log('API_BASE_URL:', API_BASE_URL);

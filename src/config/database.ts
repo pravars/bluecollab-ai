@@ -18,7 +18,7 @@ export interface DatabaseConfig {
 // Default configuration
 const defaultConfig: DatabaseConfig = {
   uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
-  dbName: process.env.MONGODB_DB_NAME || 'dwello',
+  dbName: process.env.MONGODB_DB_NAME || 'bluecollab-ai',
   options: {
     maxPoolSize: 10,
     minPoolSize: 5,
@@ -33,7 +33,7 @@ const defaultConfig: DatabaseConfig = {
 // Production configuration for scaling
 const productionConfig: DatabaseConfig = {
   uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
-  dbName: process.env.MONGODB_DB_NAME || 'dwello',
+  dbName: process.env.MONGODB_DB_NAME || 'bluecollab-ai',
   options: {
     maxPoolSize: 50,
     minPoolSize: 10,

@@ -97,7 +97,7 @@ export class AIAssistant {
   }
 
   private buildPrompt(userInput: string, context: ConversationContext): string {
-    const systemPrompt = `You are an expert AI assistant for Dwello, a comprehensive home services platform. You specialize in home maintenance, repairs, renovations, and improvements.
+    const systemPrompt = `You are an expert AI assistant for BlueCollab.ai, a comprehensive home services platform. You specialize in home maintenance, repairs, renovations, and improvements.
 
 EXPERTISE AREAS:
 - Plumbing (leaks, fixtures, pipes, water heaters, drainage)

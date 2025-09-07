@@ -21,7 +21,7 @@ export default function AIEnhancedChatInterface({ onJobCreated, onBack }: AIEnha
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "👋 Hi! I'm your AI assistant for Dwello. I'm here to help you create the perfect job posting by asking the right questions and gathering all the details service providers need to give you accurate quotes. What kind of home service do you need?",
+      text: "👋 Hi! I'm your AI assistant for BlueCollab.ai. I'm here to help you create the perfect job posting by asking the right questions and gathering all the details service providers need to give you accurate quotes. What kind of home service do you need?",
       sender: 'ai',
       timestamp: new Date()
     }
@@ -119,7 +119,7 @@ export default function AIEnhancedChatInterface({ onJobCreated, onBack }: AIEnha
     setConversationContext(AIAssistant.resetContext());
     setMessages([{
       id: 1,
-      text: "👋 Hi! I'm your AI assistant for Dwello. I'm here to help you create the perfect job posting by asking the right questions and gathering all the details service providers need to give you accurate quotes. What kind of home service do you need?",
+      text: "👋 Hi! I'm your AI assistant for BlueCollab.ai. I'm here to help you create the perfect job posting by asking the right questions and gathering all the details service providers need to give you accurate quotes. What kind of home service do you need?",
       sender: 'ai',
       timestamp: new Date()
     }]);

@@ -1,7 +1,7 @@
 {
-  "name": "dwello",
+  "name": "bluecollab-ai",
   "version": "1.0.0",
-  "description": "Dwello - AI Service Request Platform",
+  "description": "BlueCollab.ai - AI Service Request Platform",
   "type": "module",
   "private": true,
   "dependencies": {
@@ -41,7 +41,8 @@
     "db:reset": "docker-compose -f docker-compose.mongodb.yml down -v && ./scripts/setup-mongodb.sh"
   },
   "keywords": [
-    "dwello",
+    "bluecollab",
+    "bluecollab-ai",
     "ai",
     "service-request",
     "platform",

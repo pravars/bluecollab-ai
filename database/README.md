@@ -85,8 +85,8 @@ database/
 
 1. **Create Database**
 ```sql
-CREATE DATABASE dwello;
-\c dwello;
+CREATE DATABASE bluecollab-ai;
+\c bluecollab-ai;
 ```
 
 2. **Enable Extensions**
@@ -97,12 +97,12 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 
 3. **Run Schema**
 ```bash
-psql -d dwello -f schema.sql
+psql -d bluecollab-ai -f schema.sql
 ```
 
 4. **Load Sample Data**
 ```bash
-psql -d dwello -f seed-data.sql
+psql -d bluecollab-ai -f seed-data.sql
 ```
 
 ### **MongoDB Setup**
@@ -114,7 +114,7 @@ mongod --dbpath /path/to/data
 
 2. **Load Schema and Data**
 ```bash
-mongo dwello < mongodb-schema.js
+mongo bluecollab-ai < mongodb-schema.js
 ```
 
 ## 📈 Performance Considerations

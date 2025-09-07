@@ -745,8 +745,8 @@ export default AIAgentDashboard;
 ### 2. Installation
 ```bash
 # Clone repository
-git clone https://github.com/pravars/dwello.git
-cd dwello
+git clone https://github.com/pravars/bluecollab-ai.git
+cd bluecollab-ai
 
 # Install dependencies
 npm install
@@ -767,7 +767,7 @@ ANTHROPIC_API_KEY=your_anthropic_key
 OLLAMA_BASE_URL=http://localhost:11434
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/dwello
+MONGODB_URI=mongodb://localhost:27017/bluecollab-ai
 REDIS_URL=redis://localhost:6379
 
 # AI Agent Settings

@@ -1,12 +1,12 @@
 // Complete API and Database Test for Dwello User Service
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = 'mongodb://admin:dwello123@localhost:27018/dwello?authSource=admin';
+const MONGODB_URI = 'mongodb://admin:bluecollab-ai123@localhost:27018/bluecollab-ai?authSource=admin';
 
 // Test data
 const testUsers = [
   {
-    email: 'homeowner@dwello.com',
+    email: 'homeowner@bluecollab-ai.com',
     passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzKz2K', // password123
     firstName: 'John',
     lastName: 'Homeowner',
@@ -42,7 +42,7 @@ const testUsers = [
     }]
   },
   {
-    email: 'contractor@dwello.com',
+    email: 'contractor@bluecollab-ai.com',
     passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzKz2K', // password123
     firstName: 'Jane',
     lastName: 'Contractor',
@@ -100,7 +100,7 @@ const testUsers = [
     }]
   },
   {
-    email: 'admin@dwello.com',
+    email: 'admin@bluecollab-ai.com',
     passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzKz2K', // password123
     firstName: 'Admin',
     lastName: 'User',
@@ -135,7 +135,7 @@ async function testDatabaseOperations() {
     await client.connect();
     console.log('✅ Connected to MongoDB');
 
-    const db = client.db('dwello');
+    const db = client.db('bluecollab-ai');
     const usersCollection = db.collection('users');
 
     // Test 1: Clear existing test users
@@ -206,7 +206,7 @@ async function testDatabaseOperations() {
     // Test 7: Test update operations
     console.log('\n7. Testing update operations...');
     const updateResult = await usersCollection.updateOne(
-      { email: 'homeowner@dwello.com' },
+      { email: 'homeowner@bluecollab-ai.com' },
       { 
         $set: { 
           'profile.bio': 'Updated bio - I need help with home repairs, maintenance, and renovations',
@@ -245,7 +245,7 @@ async function testDatabaseOperations() {
     console.log('\n10. Testing data validation...');
     try {
       await usersCollection.insertOne({
-        email: 'invalid@dwello.com',
+        email: 'invalid@bluecollab-ai.com',
         // Missing required fields
         userType: 'homeowner'
       });
@@ -270,13 +270,13 @@ async function testDatabaseOperations() {
     
     console.log('\n🌐 Access your database at: http://localhost:8081');
     console.log('   Username: admin');
-    console.log('   Password: dwello123');
+    console.log('   Password: bluecollab-ai123');
     
     console.log('\n📝 Test Data Created:');
-    console.log('   - 1 Homeowner (homeowner@dwello.com)');
-    console.log('   - 1 Service Provider (contractor@dwello.com)');
-    console.log('   - 1 Admin (admin@dwello.com)');
-    console.log('   - 1 Existing test user (test@dwello.com)');
+    console.log('   - 1 Homeowner (homeowner@bluecollab-ai.com)');
+    console.log('   - 1 Service Provider (contractor@bluecollab-ai.com)');
+    console.log('   - 1 Admin (admin@bluecollab-ai.com)');
+    console.log('   - 1 Existing test user (test@bluecollab-ai.com)');
 
   } catch (error) {
     console.error('❌ Database test failed:', error);

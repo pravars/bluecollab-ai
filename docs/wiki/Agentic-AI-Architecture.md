@@ -563,7 +563,7 @@ services:
     ports:
       - "3004:8000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/dwello
+      - MONGODB_URI=mongodb://mongo:27017/bluecollab-ai
       - REDIS_URL=redis://redis:6379
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
@@ -575,7 +575,7 @@ services:
     ports:
       - "3005:8000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/dwello
+      - MONGODB_URI=mongodb://mongo:27017/bluecollab-ai
       - REDIS_URL=redis://redis:6379
     depends_on:
       - mongo
@@ -586,7 +586,7 @@ services:
     ports:
       - "3006:3000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/dwello
+      - MONGODB_URI=mongodb://mongo:27017/bluecollab-ai
       - REDIS_URL=redis://redis:6379
     depends_on:
       - mongo
@@ -612,7 +612,7 @@ spec:
     spec:
       containers:
       - name: ai-agent-service
-        image: dwello/ai-agent-service:latest
+        image: bluecollab-ai/ai-agent-service:latest
         ports:
         - containerPort: 8000
         env:

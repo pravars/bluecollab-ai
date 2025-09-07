@@ -30,8 +30,8 @@ PORT=3002
 API_VERSION=v1
 
 # Database
-MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/dwello
-MONGODB_DB_NAME=dwello
+MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/bluecollab-ai
+MONGODB_DB_NAME=bluecollab-ai
 
 # Security
 JWT_SECRET=your-super-secure-jwt-secret-key
@@ -88,8 +88,8 @@ sudo apt install nginx -y
 #### Application Deployment
 ```bash
 # Clone repository
-git clone https://github.com/pravars/dwello.git
-cd dwello
+git clone https://github.com/pravars/bluecollab-ai.git
+cd bluecollab-ai
 
 # Install dependencies
 npm install
@@ -107,14 +107,14 @@ pm2 startup
 
 #### Nginx Configuration
 ```nginx
-# /etc/nginx/sites-available/dwello
+# /etc/nginx/sites-available/bluecollab-ai
 server {
     listen 80;
     server_name your-domain.com;
     
     # Frontend
     location / {
-        root /path/to/dwello/dist;
+        root /path/to/bluecollab-ai/dist;
         try_files $uri $uri/ /index.html;
     }
     
@@ -201,7 +201,7 @@ services:
       - "3003:3003"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongo:27017/dwello
+      - MONGODB_URI=mongodb://mongo:27017/bluecollab-ai
     depends_on:
       - mongo
       - redis
@@ -247,7 +247,7 @@ volumes:
 module.exports = {
   apps: [
     {
-      name: 'dwello-frontend',
+      name: 'bluecollab-ai-frontend',
       script: 'npm',
       args: 'run preview',
       cwd: './',
@@ -257,7 +257,7 @@ module.exports = {
       }
     },
     {
-      name: 'dwello-backend',
+      name: 'bluecollab-ai-backend',
       script: 'src/index.js',
       cwd: './backend',
       env: {
@@ -266,7 +266,7 @@ module.exports = {
       }
     },
     {
-      name: 'dwello-user-service',
+      name: 'bluecollab-ai-user-service',
       script: 'src/index.ts',
       cwd: './microservices/user-service',
       env: {
@@ -289,16 +289,16 @@ npm install -g heroku
 heroku login
 
 # Create apps
-heroku create dwello-frontend
-heroku create dwello-backend
-heroku create dwello-user-service
+heroku create bluecollab-ai-frontend
+heroku create bluecollab-ai-backend
+heroku create bluecollab-ai-user-service
 
 # Add MongoDB addon
-heroku addons:create mongolab:sandbox --app dwello-backend
+heroku addons:create mongolab:sandbox --app bluecollab-ai-backend
 
 # Set environment variables
-heroku config:set NODE_ENV=production --app dwello-backend
-heroku config:set STRIPE_SECRET_KEY=sk_live_... --app dwello-backend
+heroku config:set NODE_ENV=production --app bluecollab-ai-backend
+heroku config:set STRIPE_SECRET_KEY=sk_live_... --app bluecollab-ai-backend
 
 # Deploy
 git push heroku main
@@ -321,12 +321,12 @@ eb deploy
 #### DigitalOcean App Platform
 ```yaml
 # .do/app.yaml
-name: dwello
+name: bluecollab-ai
 services:
 - name: frontend
   source_dir: /
   github:
-    repo: pravars/dwello
+    repo: pravars/bluecollab-ai
     branch: main
   run_command: npm run preview
   environment_slug: node-js
@@ -341,7 +341,7 @@ services:
 - name: backend
   source_dir: /backend
   github:
-    repo: pravars/dwello
+    repo: pravars/bluecollab-ai
     branch: main
   run_command: npm start
   environment_slug: node-js
@@ -384,7 +384,7 @@ security:
   authorization: enabled
 
 replication:
-  replSetName: "dwello-rs"
+  replSetName: "bluecollab-ai-rs"
 ```
 
 ### Database Initialization
@@ -401,9 +401,9 @@ db.createUser({
 })
 
 # Create application user
-use dwello
+use bluecollab-ai
 db.createUser({
-  user: "dwello-user",
+  user: "bluecollab-ai-user",
   pwd: "app-password",
   roles: ["readWrite"]
 })
@@ -478,8 +478,8 @@ app.use(Sentry.errorHandler());
 
 ### Log Rotation
 ```bash
-# /etc/logrotate.d/dwello
-/var/log/dwello/*.log {
+# /etc/logrotate.d/bluecollab-ai
+/var/log/bluecollab-ai/*.log {
     daily
     missingok
     rotate 52
@@ -501,7 +501,7 @@ app.use(Sentry.errorHandler());
 # backup.sh
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/backups/mongodb"
-DB_NAME="dwello"
+DB_NAME="bluecollab-ai"
 
 mkdir -p $BACKUP_DIR
 
@@ -525,7 +525,7 @@ find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
 # app-backup.sh
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/backups/app"
-APP_DIR="/path/to/dwello"
+APP_DIR="/path/to/bluecollab-ai"
 
 mkdir -p $BACKUP_DIR
 
@@ -617,7 +617,7 @@ const cache = (duration) => {
 #### Application Won't Start
 ```bash
 # Check logs
-pm2 logs dwello-backend
+pm2 logs bluecollab-ai-backend
 
 # Check port availability
 netstat -tulpn | grep :3002
