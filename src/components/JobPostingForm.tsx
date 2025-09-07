@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import apiService from '../services/api';
-import { CreateJobRequest } from '../models/Job';
+import { CreateJobRequest, JobPhoto } from '../models/Job';
+import PhotoUpload from './PhotoUpload';
+import AIMaterialEstimator from './AIMaterialEstimator';
 
 interface JobPostingFormProps {
   userId: string;
@@ -25,6 +27,8 @@ const JobPostingForm: React.FC<JobPostingFormProps> = ({ userId, onJobPosted, on
 
   const [specialReqInput, setSpecialReqInput] = useState('');
   const [skillsInput, setSkillsInput] = useState('');
+  const [photos, setPhotos] = useState<JobPhoto[]>([]);
+  const [aiMaterialEstimate, setAiMaterialEstimate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -89,7 +93,8 @@ const JobPostingForm: React.FC<JobPostingFormProps> = ({ userId, onJobPosted, on
     try {
       const jobData = {
         ...formData,
-        postedBy: userId
+        postedBy: userId,
+        photos: photos
       };
       console.log('Creating job with data:', jobData);
       console.log('JobPostingForm userId prop:', userId);
@@ -345,6 +350,33 @@ const JobPostingForm: React.FC<JobPostingFormProps> = ({ userId, onJobPosted, on
             ))}
           </div>
         </div>
+
+        {/* Photo Upload */}
+        <div>
+          <PhotoUpload
+            photos={photos}
+            onPhotosChange={setPhotos}
+            maxPhotos={10}
+          />
+        </div>
+
+        {/* AI Material Estimator */}
+        {formData.description && formData.serviceType && (
+          <div>
+            <AIMaterialEstimator
+              jobId={`temp-${Date.now()}`}
+              jobDescription={formData.description}
+              serviceType={formData.serviceType}
+              location={formData.location}
+              urgency={formData.urgency}
+              budget={formData.budget ? parseFloat(formData.budget) : undefined}
+              onEstimateGenerated={(estimate) => {
+                setAiMaterialEstimate(estimate);
+                console.log('AI Material Estimate:', estimate);
+              }}
+            />
+          </div>
+        )}
 
         {/* Submit Buttons */}
         <div className="flex gap-4 pt-4">

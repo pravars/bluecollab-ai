@@ -123,7 +123,7 @@ export default function ServiceProviderDashboard({ onBack, userId }: ServiceProv
       <JobDetails
         job={selectedJob}
         currentUserId={userId}
-        userType="provider"
+        userType="service_provider"
         onBack={() => setCurrentView('browse-jobs')}
         onBidSubmitted={handleBidSubmitted}
       />

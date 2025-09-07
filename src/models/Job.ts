@@ -17,11 +17,22 @@ export interface Job {
   createdAt: string;
   updatedAt: string;
   bids?: Bid[];
+  photos?: JobPhoto[];
   posterInfo?: {
     name: string;
     email: string;
     phone?: string;
   };
+}
+
+export interface JobPhoto {
+  _id?: string;
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  uploadedAt: string;
+  description?: string;
 }
 
 export interface Bid {
@@ -41,6 +52,16 @@ export interface Bid {
     rating?: number;
     reviewCount?: number;
   };
+  materialEstimate?: {
+    store: string;
+    items: {
+      name: string;
+      quantity: string;
+      price: number;
+    }[];
+    total: number;
+    storeLink?: string;
+  };
 }
 
 export interface CreateJobRequest {
@@ -55,6 +76,7 @@ export interface CreateJobRequest {
   specialRequirements: string[];
   estimatedDuration: string;
   skillsRequired: string[];
+  photos?: JobPhoto[];
 }
 
 export interface CreateBidRequest {

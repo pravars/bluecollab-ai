@@ -5,8 +5,18 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from project root
+console.log('🔧 Loading .env from:', path.join(__dirname, '../../.env'));
+const envResult = dotenv.config({ path: path.join(__dirname, '../../.env') });
+console.log('🔧 Environment loaded:', envResult.error ? 'ERROR: ' + envResult.error.message : 'SUCCESS');
+console.log('🔧 OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+console.log('🔧 MONGODB_URI:', process.env.MONGODB_URI ? 'SET' : 'NOT SET');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -18,7 +28,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51234567890a
 });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:bluecollab123@localhost:27018/bluecollab-ai?authSource=admin';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27019/bluecollab-ai';
 let db = null;
 
 async function connectToDatabase() {
@@ -34,7 +44,8 @@ async function connectToDatabase() {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -495,7 +506,7 @@ app.post('/api/jobs', async (req, res) => {
       });
     }
 
-    const { title, description, serviceType, scope, timeline, budget, location, urgency, specialRequirements, estimatedDuration, skillsRequired, postedBy } = req.body;
+    const { title, description, serviceType, scope, timeline, budget, location, urgency, specialRequirements, estimatedDuration, skillsRequired, postedBy, photos } = req.body;
 
     // Validate required fields
     if (!title || !description || !serviceType || !postedBy) {
@@ -529,6 +540,7 @@ app.post('/api/jobs', async (req, res) => {
       skillsRequired: skillsRequired || [],
       status: 'open',
       postedBy,
+      photos: photos || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       posterInfo: {
@@ -756,7 +768,7 @@ app.post('/api/bids', async (req, res) => {
       });
     }
 
-    const { jobId, bidderId, amount, timeline, description } = req.body;
+    const { jobId, bidderId, amount, timeline, description, materialEstimate } = req.body;
 
     console.log('Bid creation request:', { jobId, bidderId, amount, timeline, description });
 
@@ -817,6 +829,7 @@ app.post('/api/bids', async (req, res) => {
       status: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      materialEstimate: materialEstimate || null,
       bidderInfo: {
         name: `${bidder.firstName} ${bidder.lastName}`,
         email: bidder.email,
@@ -1683,6 +1696,10 @@ app.delete('/api/admin/clear-all-users', async (req, res) => {
     });
   }
 });
+
+// Material Estimation Routes
+import materialEstimationRoutes from './routes/materialEstimationRoutes.js';
+app.use('/api/material-estimation', materialEstimationRoutes);
 
 // Start server
 async function startServer() {

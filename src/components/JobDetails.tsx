@@ -22,22 +22,58 @@ const JobDetails: React.FC<JobDetailsProps> = ({
   const [bidForm, setBidForm] = useState({
     amount: '',
     timeline: '',
-    description: ''
+    description: '',
+    materialEstimate: {
+      store: '',
+      items: [{ name: '', quantity: '', price: 0 }],
+      total: 0,
+      storeLink: ''
+    }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [aiMaterialEstimate, setAiMaterialEstimate] = useState<any>(null);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
 
   useEffect(() => {
     if (job._id) {
       fetchBids();
+      fetchAIMaterialEstimate();
     }
   }, [job._id]);
 
+  const fetchAIMaterialEstimate = async () => {
+    if (!job._id) return;
+    
+    setLoadingEstimate(true);
+    try {
+      const response = await apiService.getMaterialEstimate(job._id);
+      if (response.success && response.data) {
+        setAiMaterialEstimate(response.data);
+      }
+    } catch (error) {
+      console.log('No AI material estimate found for this job');
+    } finally {
+      setLoadingEstimate(false);
+    }
+  };
+
   const fetchBids = async () => {
     try {
-      const response = await apiService.getJobBids(job._id!);
-      if (response.success) {
-        setBids(response.data || []);
+      // If user is a service provider, only fetch their own bid
+      if (userType === 'service_provider' && currentUserId) {
+        const response = await apiService.getBidderBids(currentUserId);
+        if (response.success) {
+          // Filter to only show bids for this specific job
+          const myBidsForThisJob = (response.data || []).filter((bid: Bid) => bid.jobId === job._id);
+          setBids(myBidsForThisJob);
+        }
+      } else {
+        // For job owners, fetch all bids
+        const response = await apiService.getJobBids(job._id!);
+        if (response.success) {
+          setBids(response.data || []);
+        }
       }
     } catch (err) {
       console.error('Error fetching bids:', err);
@@ -70,7 +106,17 @@ const JobDetails: React.FC<JobDetailsProps> = ({
       if (response.success) {
         setBids(prev => [response.data, ...prev]);
         setShowBidForm(false);
-        setBidForm({ amount: '', timeline: '', description: '' });
+        setBidForm({ 
+          amount: '', 
+          timeline: '', 
+          description: '',
+          materialEstimate: {
+            store: '',
+            items: [{ name: '', quantity: '', price: 0 }],
+            total: 0,
+            storeLink: ''
+          }
+        });
         onBidSubmitted?.(response.data);
       } else {
         setError(response.error || 'Failed to submit bid');
@@ -143,7 +189,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
   };
 
   const isJobOwner = currentUserId === job.postedBy;
-  const canBid = userType === 'provider' && job.status === 'open' && !isJobOwner;
+  const canBid = userType === 'service_provider' && job.status === 'open' && !isJobOwner;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -213,6 +259,79 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Job Photos */}
+            {job.photos && job.photos.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Photos</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {job.photos.map((photo, index) => (
+                    <div key={index} className="group relative">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer">
+                        <img
+                          src={photo.url}
+                          alt={photo.description || photo.originalName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          onClick={() => window.open(photo.url, '_blank')}
+                        />
+                      </div>
+                      {photo.description && (
+                        <p className="mt-2 text-xs text-gray-600 truncate" title={photo.description}>
+                          {photo.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  Click on any photo to view full size
+                </p>
+              </div>
+            )}
+
+            {/* AI Material Estimate */}
+            {aiMaterialEstimate && (
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">AI</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-blue-900">AI Material Estimate</h3>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm text-blue-700">
+                    <span>Confidence: {aiMaterialEstimate.confidence}%</span>
+                    <span className="font-semibold">${aiMaterialEstimate.totalEstimatedCost.toFixed(2)}</span>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-blue-800 mb-4">
+                  AI-powered material breakdown to help service providers create accurate bids
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {aiMaterialEstimate.extractedMaterials.map((material: any, index: number) => (
+                    <div key={index} className="bg-white rounded-lg p-4 border border-blue-100">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">{material.name}</h4>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {material.category}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <div>Quantity: {material.quantity} {material.unit}</div>
+                        {material.specifications.length > 0 && (
+                          <div>Specs: {material.specifications.join(', ')}</div>
+                        )}
+                        {material.notes && (
+                          <div className="text-xs text-gray-500 italic">{material.notes}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Skills and Requirements */}
             {(job.skillsRequired?.length > 0 || job.specialRequirements?.length > 0) && (
@@ -307,6 +426,151 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                     />
                   </div>
                 </div>
+                
+                {/* Material Estimate Section */}
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-3">Material Estimate (Optional)</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Store
+                      </label>
+                      <select
+                        value={bidForm.materialEstimate.store}
+                        onChange={(e) => setBidForm(prev => ({ 
+                          ...prev, 
+                          materialEstimate: { ...prev.materialEstimate, store: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select a store</option>
+                        <option value="Home Depot">Home Depot</option>
+                        <option value="Lowes">Lowes</option>
+                        <option value="Menards">Menards</option>
+                        <option value="Local Hardware Store">Local Hardware Store</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Store Link (Optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={bidForm.materialEstimate.storeLink}
+                        onChange={(e) => setBidForm(prev => ({ 
+                          ...prev, 
+                          materialEstimate: { ...prev.materialEstimate, storeLink: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Materials
+                    </label>
+                    {bidForm.materialEstimate.items.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                        <div className="col-span-5">
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => {
+                              const newItems = [...bidForm.materialEstimate.items];
+                              newItems[index] = { ...item, name: e.target.value };
+                              const total = newItems.reduce((sum, item) => sum + item.price, 0);
+                              setBidForm(prev => ({ 
+                                ...prev, 
+                                materialEstimate: { ...prev.materialEstimate, items: newItems, total }
+                              }));
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Material name"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="text"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const newItems = [...bidForm.materialEstimate.items];
+                              newItems[index] = { ...item, quantity: e.target.value };
+                              setBidForm(prev => ({ 
+                                ...prev, 
+                                materialEstimate: { ...prev.materialEstimate, items: newItems }
+                              }));
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Qty"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(e) => {
+                              const newItems = [...bidForm.materialEstimate.items];
+                              newItems[index] = { ...item, price: parseFloat(e.target.value) || 0 };
+                              const total = newItems.reduce((sum, item) => sum + item.price, 0);
+                              setBidForm(prev => ({ 
+                                ...prev, 
+                                materialEstimate: { ...prev.materialEstimate, items: newItems, total }
+                              }));
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Price"
+                          />
+                        </div>
+                        <div className="col-span-2 flex justify-end">
+                          {bidForm.materialEstimate.items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = bidForm.materialEstimate.items.filter((_, i) => i !== index);
+                                const total = newItems.reduce((sum, item) => sum + item.price, 0);
+                                setBidForm(prev => ({ 
+                                  ...prev, 
+                                  materialEstimate: { ...prev.materialEstimate, items: newItems, total }
+                                }));
+                              }}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => setBidForm(prev => ({ 
+                        ...prev, 
+                        materialEstimate: { 
+                          ...prev.materialEstimate, 
+                          items: [...prev.materialEstimate.items, { name: '', quantity: '', price: 0 }]
+                        }
+                      }))}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      + Add Material
+                    </button>
+                    
+                    {bidForm.materialEstimate.items.some(item => item.name || item.quantity || item.price > 0) && (
+                      <div className="mt-2 p-2 bg-white rounded border">
+                        <div className="flex justify-between items-center text-sm font-semibold">
+                          <span>Total Materials:</span>
+                          <span>${bidForm.materialEstimate.total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
@@ -341,13 +605,20 @@ const JobDetails: React.FC<JobDetailsProps> = ({
             {/* Bids List */}
             <div className="space-y-4">
               {bids.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No bids yet. Be the first to bid!</p>
+                <p className="text-gray-500 text-center py-8">
+                  {userType === 'service_provider' 
+                    ? "You haven't bid on this job yet. Submit your bid below!" 
+                    : "No bids yet. Be the first to bid!"
+                  }
+                </p>
               ) : (
                 bids.map((bid) => (
                   <div key={bid._id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-semibold text-gray-900">{bid.bidderInfo?.name}</h4>
+                        <h4 className="font-semibold text-gray-900">
+                          {userType === 'service_provider' ? 'Your Bid' : bid.bidderInfo?.name}
+                        </h4>
                         <p className="text-sm text-gray-500">{formatDate(bid.createdAt)}</p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -358,6 +629,53 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                       </div>
                     </div>
                     <p className="text-gray-600 mb-2">{bid.description}</p>
+                    
+                    {/* Material Estimate - Only show to job owners */}
+                    {isJobOwner && bid.materialEstimate && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-semibold text-blue-900 text-sm">Material Estimate</h5>
+                          <div className="flex items-center space-x-2">
+                            {bid.materialEstimate.store === 'Home Depot' && (
+                              <div className="w-5 h-5 bg-orange-600 rounded flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">HD</span>
+                              </div>
+                            )}
+                            {bid.materialEstimate.store === 'Lowes' && (
+                              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">L</span>
+                              </div>
+                            )}
+                            {bid.materialEstimate.store === 'Menards' && (
+                              <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">M</span>
+                              </div>
+                            )}
+                            <span className="text-xs font-medium text-blue-800">{bid.materialEstimate.store}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1 mb-2">
+                          {bid.materialEstimate.items.slice(0, 3).map((item, index) => (
+                            <div key={index} className="flex justify-between items-center text-xs">
+                              <span className="text-gray-700 truncate">{item.name} ({item.quantity})</span>
+                              <span className="font-medium text-gray-900">${item.price.toFixed(2)}</span>
+                            </div>
+                          ))}
+                          {bid.materialEstimate.items.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center">
+                              +{bid.materialEstimate.items.length - 3} more items
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="border-t border-blue-200 pt-1 flex justify-between items-center">
+                          <span className="text-xs font-semibold text-blue-900">Total:</span>
+                          <span className="text-xs font-bold text-blue-900">${bid.materialEstimate.total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Timeline: {bid.timeline}</span>
                       {isJobOwner && job.status === 'open' && bid.status === 'pending' && (

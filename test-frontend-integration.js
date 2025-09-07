@@ -1,120 +1,65 @@
-// Test Frontend Integration with MongoDB
-import { MongoClient } from 'mongodb';
+// Test frontend integration with material estimation API
+import axios from 'axios';
 
-const MONGODB_URI = 'mongodb://admin:dwello123@localhost:27018/dwello?authSource=admin';
+const BASE_URL = 'http://localhost:3002';
 
 async function testFrontendIntegration() {
-  console.log('🧪 Testing Frontend Integration with MongoDB...\n');
-  
-  let client;
+  console.log('🧪 Testing Frontend Integration...\n');
+
   try {
-    // Connect to MongoDB
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    console.log('✅ Connected to MongoDB successfully');
+    // Test 1: Check if backend is running
+    console.log('1️⃣ Checking backend health...');
+    const healthResponse = await axios.get(`${BASE_URL}/health`);
+    console.log('✅ Backend health:', healthResponse.data.status);
 
-    const db = client.db('dwello');
-    const usersCollection = db.collection('users');
+    // Test 2: Check material estimation service health
+    console.log('\n2️⃣ Checking material estimation service...');
+    const materialHealthResponse = await axios.get(`${BASE_URL}/api/material-estimation/health`);
+    console.log('✅ Material estimation health:', materialHealthResponse.data.status);
 
-    // Test 1: Verify users exist
-    console.log('\n📊 VERIFYING DATABASE DATA');
-    console.log('-'.repeat(40));
-    const totalUsers = await usersCollection.countDocuments();
-    console.log(`✅ Total users in database: ${totalUsers}`);
+    // Test 3: Test material estimation API
+    console.log('\n3️⃣ Testing material estimation API...');
+    const estimateResponse = await axios.post(`${BASE_URL}/api/material-estimation/estimate`, {
+      jobId: 'frontend-test-123',
+      jobDescription: 'Install new kitchen faucet and fix leaky pipes under the sink',
+      serviceType: 'plumbing',
+      location: 'Kitchen',
+      urgency: 'high',
+      budget: 400
+    });
 
-    // Test 2: Get user statistics
-    const homeowners = await usersCollection.find({ userType: 'homeowner' }).toArray();
-    const contractors = await usersCollection.find({ userType: 'service_provider' }).toArray();
-    const admins = await usersCollection.find({ userType: 'admin' }).toArray();
-    
-    console.log(`✅ Homeowners: ${homeowners.length}`);
-    console.log(`✅ Service Providers: ${contractors.length}`);
-    console.log(`✅ Admins: ${admins.length}`);
-
-    // Test 3: Test data format for frontend
-    console.log('\n🔍 TESTING DATA FORMAT FOR FRONTEND');
-    console.log('-'.repeat(40));
-    const sampleUser = await usersCollection.findOne({});
-    if (sampleUser) {
-      console.log('✅ Sample user data structure:');
-      console.log(`   ID: ${sampleUser._id}`);
-      console.log(`   Name: ${sampleUser.firstName} ${sampleUser.lastName}`);
-      console.log(`   Email: ${sampleUser.email}`);
-      console.log(`   Type: ${sampleUser.userType}`);
-      console.log(`   Status: ${sampleUser.status}`);
-      console.log(`   Created: ${sampleUser.createdAt}`);
-      
-      if (sampleUser.profile) {
-        console.log(`   Bio: ${sampleUser.profile.bio || 'N/A'}`);
-        console.log(`   Company: ${sampleUser.profile.companyName || 'N/A'}`);
-        console.log(`   Specialties: ${sampleUser.profile.specialties?.join(', ') || 'N/A'}`);
-      }
+    if (estimateResponse.data.success) {
+      console.log('✅ Material estimate generated successfully!');
+      console.log(`📊 Found ${estimateResponse.data.data.extractedMaterials.length} materials`);
+      console.log(`💰 Estimated cost: $${estimateResponse.data.data.totalEstimatedCost}`);
+      console.log(`🎯 Confidence: ${estimateResponse.data.data.confidence}%`);
+      console.log(`⏱️ Processing time: ${estimateResponse.data.data.processingTime}ms`);
+    } else {
+      console.log('❌ Failed to generate estimate:', estimateResponse.data.error);
     }
 
-    // Test 4: Test queries that frontend will use
-    console.log('\n🔍 TESTING FRONTEND QUERIES');
-    console.log('-'.repeat(40));
+    // Test 4: Test retrieving the estimate
+    console.log('\n4️⃣ Testing estimate retrieval...');
+    const getEstimateResponse = await axios.get(`${BASE_URL}/api/material-estimation/estimate/frontend-test-123`);
     
-    // Get all users (like the frontend dashboard will)
-    const allUsers = await usersCollection.find({}).toArray();
-    console.log(`✅ All users query: ${allUsers.length} results`);
-    
-    // Get users by type (for filtering)
-    const userTypes = ['homeowner', 'service_provider', 'admin'];
-    for (const type of userTypes) {
-      const count = await usersCollection.countDocuments({ userType: type });
-      console.log(`✅ ${type} users: ${count}`);
+    if (getEstimateResponse.data.success) {
+      console.log('✅ Estimate retrieved successfully!');
+      console.log(`📋 Materials: ${getEstimateResponse.data.data.extractedMaterials.length} items`);
+    } else {
+      console.log('❌ Failed to retrieve estimate:', getEstimateResponse.data.error);
     }
 
-    // Test 5: Verify data is ready for React components
-    console.log('\n⚛️ REACT COMPONENT READINESS');
-    console.log('-'.repeat(40));
-    console.log('✅ Database connection: Working');
-    console.log('✅ User data: Available and properly formatted');
-    console.log('✅ User types: Supported (homeowner, service_provider, admin)');
-    console.log('✅ Profile data: Available with bio, company, specialties');
-    console.log('✅ Address data: Available for location features');
-    console.log('✅ Timestamps: Available for sorting and filtering');
-
-    console.log('\n' + '='.repeat(60));
-    console.log('🎉 FRONTEND INTEGRATION TEST COMPLETED!');
-    console.log('='.repeat(60));
-    
-    console.log('\n✅ DATABASE STATUS: Ready for frontend integration');
-    console.log('✅ DATA AVAILABILITY: All required data is available');
-    console.log('✅ DATA FORMAT: Compatible with React components');
-    console.log('✅ QUERY PERFORMANCE: Fast and efficient');
-    
-    console.log('\n🌐 FRONTEND ACCESS:');
-    console.log('   React App: http://localhost:3000 (or 3001, 3002, 3003)');
-    console.log('   Database UI: http://localhost:8081');
-    console.log('   Username: admin');
-    console.log('   Password: dwello123');
-    
-    console.log('\n📱 REACT FEATURES READY:');
-    console.log('   - Database Dashboard component');
-    console.log('   - User management interface');
-    console.log('   - Real-time data display');
-    console.log('   - User creation and editing');
-    console.log('   - Data filtering and search');
-    console.log('   - Statistics and analytics');
-    
-    console.log('\n🚀 NEXT STEPS:');
-    console.log('   1. Open your React app in the browser');
-    console.log('   2. Click on "Database" in the navigation');
-    console.log('   3. View and manage your MongoDB data');
-    console.log('   4. Test user creation and editing');
-    console.log('   5. Explore the integrated dashboard');
+    console.log('\n🎉 Frontend integration test completed!');
+    console.log('\n📝 Next steps:');
+    console.log('1. Start the frontend: npm run dev');
+    console.log('2. Navigate to job posting form');
+    console.log('3. Fill in job description and service type');
+    console.log('4. Click "Generate AI Material Estimate" button');
+    console.log('5. View the AI-generated material breakdown');
 
   } catch (error) {
-    console.error('❌ Frontend integration test failed:', error);
-  } finally {
-    if (client) {
-      await client.close();
-      console.log('\n🔌 Disconnected from MongoDB');
-    }
+    console.error('❌ Test failed:', error.response?.data || error.message);
   }
 }
 
-// Run the integration test
 testFrontendIntegration();

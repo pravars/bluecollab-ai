@@ -319,6 +319,92 @@ class ApiService {
     }
   }
 
+  // Material Estimation API
+  async generateMaterialEstimate(request: {
+    jobId: string;
+    jobDescription: string;
+    serviceType: string;
+    location?: string;
+    urgency?: string;
+    budget?: number;
+  }): Promise<ApiResponse<{
+    jobId: string;
+    extractedMaterials: Array<{
+      category: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      specifications: string[];
+      estimatedSize: string;
+      quality: string;
+      notes: string;
+    }>;
+    totalEstimatedCost: number;
+    confidence: number;
+    aiModel: string;
+    processingTime: number;
+    createdAt: string;
+    lastUpdated: string;
+  }>> {
+    return this.request('/api/material-estimation/estimate', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getMaterialEstimate(jobId: string): Promise<ApiResponse<{
+    jobId: string;
+    extractedMaterials: Array<{
+      category: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      specifications: string[];
+      estimatedSize: string;
+      quality: string;
+      notes: string;
+    }>;
+    totalEstimatedCost: number;
+    confidence: number;
+    aiModel: string;
+    processingTime: number;
+    createdAt: string;
+    lastUpdated: string;
+  }>> {
+    return this.request(`/api/material-estimation/estimate/${jobId}`);
+  }
+
+  async initializeMaterialTemplates(): Promise<ApiResponse<{ message: string }>> {
+    return this.request('/api/material-estimation/templates/init', {
+      method: 'POST',
+    });
+  }
+
+  async getMaterialTemplates(): Promise<ApiResponse<Array<{
+    _id: string;
+    serviceType: string;
+    keywords: string[];
+    commonMaterials: Array<{
+      category: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      specifications: string[];
+    }>;
+    lastUpdated: string;
+    usageCount: number;
+  }>>> {
+    return this.request('/api/material-estimation/templates');
+  }
+
+  async getMaterialEstimationHealth(): Promise<ApiResponse<{
+    service: string;
+    status: string;
+    timestamp: string;
+  }>> {
+    return this.request('/api/material-estimation/health');
+  }
+
   // Simple test method for debugging
   async testSimpleRequest(): Promise<void> {
     try {

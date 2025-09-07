@@ -1,7 +1,7 @@
 // Successful API and Database Test for Dwello User Service
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = 'mongodb://admin:bluecollab-ai123@localhost:27018/bluecollab-ai?authSource=admin';
+const MONGODB_URI = 'mongodb://localhost:27019/bluecollab-ai';
 
 async function testSuccessfulOperations() {
   console.log('🧪 Testing Successful Database Operations...\n');

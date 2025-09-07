@@ -307,6 +307,64 @@ export default function BidManagementModal({
                                 </p>
                               </div>
                             )}
+                            
+                            {/* Material Estimate */}
+                            {bid.materialEstimate && (
+                              <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-semibold text-blue-900">Material Estimate</h4>
+                                  <div className="flex items-center space-x-2">
+                                    {bid.materialEstimate.store === 'Home Depot' && (
+                                      <div className="w-6 h-6 bg-orange-600 rounded flex items-center justify-center">
+                                        <span className="text-white font-bold text-xs">HD</span>
+                                      </div>
+                                    )}
+                                    {bid.materialEstimate.store === 'Lowes' && (
+                                      <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                                        <span className="text-white font-bold text-xs">L</span>
+                                      </div>
+                                    )}
+                                    {bid.materialEstimate.store === 'Menards' && (
+                                      <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center">
+                                        <span className="text-white font-bold text-xs">M</span>
+                                      </div>
+                                    )}
+                                    <span className="text-sm font-medium text-blue-800">{bid.materialEstimate.store}</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2 mb-3">
+                                  {bid.materialEstimate.items.map((item, index) => (
+                                    <div key={index} className="flex justify-between items-center text-sm">
+                                      <div className="flex-1">
+                                        <span className="text-gray-700">{item.name}</span>
+                                        <span className="text-gray-500 ml-2">({item.quantity})</span>
+                                      </div>
+                                      <span className="font-medium text-gray-900">${item.price.toFixed(2)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                
+                                <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+                                  <span className="font-semibold text-blue-900">Total Materials:</span>
+                                  <span className="font-bold text-blue-900">${bid.materialEstimate.total.toFixed(2)}</span>
+                                </div>
+                                
+                                {bid.materialEstimate.storeLink && (
+                                  <div className="mt-2">
+                                    <a 
+                                      href={bid.materialEstimate.storeLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                      View on {bid.materialEstimate.store} →
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
                             <div className="mt-3 flex space-x-4 text-sm text-gray-600">
                               <div className="flex items-center space-x-1">
                                 <Phone className="w-4 h-4" />
