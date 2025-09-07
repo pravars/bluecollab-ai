@@ -34,21 +34,21 @@ INSERT INTO feature_flags (flag_name, is_enabled, target_users, rollout_percenta
 
 -- Main categories
 INSERT INTO service_categories (id, name, description, icon_url, is_active, sort_order) VALUES
-('550e8400-e29b-41d4-a716-446655440001', 'Home Services', 'General home maintenance and repair services', 'https://dwello.com/icons/home.svg', true, 1),
-('550e8400-e29b-41d4-a716-446655440002', 'Home Financing', 'Mortgages, refinancing, and home loans', 'https://dwello.com/icons/finance.svg', true, 2),
-('550e8400-e29b-41d4-a716-446655440003', 'Home Insurance', 'Property and liability insurance', 'https://dwello.com/icons/insurance.svg', true, 3),
-('550e8400-e29b-41d4-a716-446655440004', 'Real Estate', 'Buying, selling, and property management', 'https://dwello.com/icons/real-estate.svg', true, 4);
+('550e8400-e29b-41d4-a716-446655440001', 'Home Services', 'General home maintenance and repair services', 'https://bluecollab.ai/icons/home.svg', true, 1),
+('550e8400-e29b-41d4-a716-446655440002', 'Home Financing', 'Mortgages, refinancing, and home loans', 'https://bluecollab.ai/icons/finance.svg', true, 2),
+('550e8400-e29b-41d4-a716-446655440003', 'Home Insurance', 'Property and liability insurance', 'https://bluecollab.ai/icons/insurance.svg', true, 3),
+('550e8400-e29b-41d4-a716-446655440004', 'Real Estate', 'Buying, selling, and property management', 'https://bluecollab.ai/icons/real-estate.svg', true, 4);
 
 -- Subcategories for Home Services
 INSERT INTO service_categories (id, name, description, parent_id, icon_url, is_active, sort_order) VALUES
-('550e8400-e29b-41d4-a716-446655440011', 'Painting & Decorating', 'Interior and exterior painting services', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/painting.svg', true, 1),
-('550e8400-e29b-41d4-a716-446655440012', 'Plumbing', 'Plumbing repairs and installations', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/plumbing.svg', true, 2),
-('550e8400-e29b-41d4-a716-446655440013', 'Electrical', 'Electrical work and installations', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/electrical.svg', true, 3),
-('550e8400-e29b-41d4-a716-446655440014', 'Cleaning Services', 'House cleaning and maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/cleaning.svg', true, 4),
-('550e8400-e29b-41d4-a716-446655440015', 'HVAC', 'Heating, ventilation, and air conditioning', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/hvac.svg', true, 5),
-('550e8400-e29b-41d4-a716-446655440016', 'Landscaping', 'Garden and outdoor maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/landscaping.svg', true, 6),
-('550e8400-e29b-41d4-a716-446655440017', 'Flooring', 'Floor installation and repair', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/flooring.svg', true, 7),
-('550e8400-e29b-41d4-a716-446655440018', 'Handyman', 'General repair and maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://dwello.com/icons/handyman.svg', true, 8);
+('550e8400-e29b-41d4-a716-446655440011', 'Painting & Decorating', 'Interior and exterior painting services', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/painting.svg', true, 1),
+('550e8400-e29b-41d4-a716-446655440012', 'Plumbing', 'Plumbing repairs and installations', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/plumbing.svg', true, 2),
+('550e8400-e29b-41d4-a716-446655440013', 'Electrical', 'Electrical work and installations', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/electrical.svg', true, 3),
+('550e8400-e29b-41d4-a716-446655440014', 'Cleaning Services', 'House cleaning and maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/cleaning.svg', true, 4),
+('550e8400-e29b-41d4-a716-446655440015', 'HVAC', 'Heating, ventilation, and air conditioning', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/hvac.svg', true, 5),
+('550e8400-e29b-41d4-a716-446655440016', 'Landscaping', 'Garden and outdoor maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/landscaping.svg', true, 6),
+('550e8400-e29b-41d4-a716-446655440017', 'Flooring', 'Floor installation and repair', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/flooring.svg', true, 7),
+('550e8400-e29b-41d4-a716-446655440018', 'Handyman', 'General repair and maintenance', '550e8400-e29b-41d4-a716-446655440001', 'https://bluecollab.ai/icons/handyman.svg', true, 8);
 
 -- =============================================
 -- SAMPLE USERS
@@ -56,13 +56,13 @@ INSERT INTO service_categories (id, name, description, parent_id, icon_url, is_a
 
 -- Sample Homeowner
 INSERT INTO users (id, email, password_hash, first_name, last_name, phone, user_type, status, email_verified, phone_verified, profile_image_url) VALUES
-('650e8400-e29b-41d4-a716-446655440001', 'sarah.mitchell@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Sarah', 'Mitchell', '+14155551234', 'homeowner', 'active', true, true, 'https://dwello.com/avatars/sarah.jpg');
+('650e8400-e29b-41d4-a716-446655440001', 'sarah.mitchell@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Sarah', 'Mitchell', '+14155551234', 'homeowner', 'active', true, true, 'https://bluecollab.ai/avatars/sarah.jpg');
 
 -- Sample Service Providers
 INSERT INTO users (id, email, password_hash, first_name, last_name, phone, user_type, status, email_verified, phone_verified, profile_image_url) VALUES
-('650e8400-e29b-41d4-a716-446655440002', 'mike.painter@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Mike', 'Johnson', '+14155552345', 'service_provider', 'active', true, true, 'https://dwello.com/avatars/mike.jpg'),
-('650e8400-e29b-41d4-a716-446655440003', 'elite.services@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'David', 'Martinez', '+14155553456', 'service_provider', 'active', true, true, 'https://dwello.com/avatars/david.jpg'),
-('650e8400-e29b-41d4-a716-446655440004', 'admin@dwello.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Admin', 'User', '+14155554567', 'admin', 'active', true, true, 'https://dwello.com/avatars/admin.jpg');
+('650e8400-e29b-41d4-a716-446655440002', 'mike.painter@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Mike', 'Johnson', '+14155552345', 'service_provider', 'active', true, true, 'https://bluecollab.ai/avatars/mike.jpg'),
+('650e8400-e29b-41d4-a716-446655440003', 'elite.services@example.com', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'David', 'Martinez', '+14155553456', 'service_provider', 'active', true, true, 'https://bluecollab.ai/avatars/david.jpg'),
+('650e8400-e29b-41d4-a716-446655440004', 'admin@bluecollab.ai', '$2b$10$rQZ8vF7kL9mN2pQ1sT3uOeXyZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ', 'Admin', 'User', '+14155554567', 'admin', 'active', true, true, 'https://bluecollab.ai/avatars/admin.jpg');
 
 -- User Profiles
 INSERT INTO user_profiles (user_id, bio, company_name, years_experience, specialties, service_areas, emergency_available, insurance_info, license_info) VALUES
@@ -81,9 +81,9 @@ INSERT INTO user_addresses (user_id, address_type, street_address, city, state, 
 -- =============================================
 
 INSERT INTO jobs (id, homeowner_id, title, description, category_id, budget_min, budget_max, urgency, status, location_id, preferred_start_date, preferred_end_date, estimated_duration_hours, materials_provided, materials_description, special_requirements, photos, is_emergency, published_at) VALUES
-('750e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440001', 'Kitchen Cabinet Painting', 'Need professional to paint 15 kitchen cabinets. All prep work will be done by homeowner. Looking for high-quality finish with attention to detail.', '550e8400-e29b-41d4-a716-446655440011', 800.00, 1200.00, 'medium', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-02-01', '2024-02-05', 16, true, 'Homeowner will provide paint and supplies', 'Must be licensed and insured, 3+ years experience', '["https://dwello.com/jobs/kitchen1.jpg", "https://dwello.com/jobs/kitchen2.jpg"]', false, '2024-01-15 10:00:00'),
-('750e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440001', 'Bathroom Plumbing Repair', 'Leaky faucet and running toilet need immediate attention. Prefer same-day service if possible.', '550e8400-e29b-41d4-a716-446655440012', 200.00, 400.00, 'urgent', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-01-20', '2024-01-20', 4, false, 'Contractor provides parts', 'Licensed plumber, emergency availability', '["https://dwello.com/jobs/bathroom1.jpg"]', true, '2024-01-20 08:00:00'),
-('750e8400-e29b-41d4-a716-446655440003', '650e8400-e29b-41d4-a716-446655440001', 'Deck Staining Project', 'Large composite deck needs professional staining. Approximately 400 sq ft. Weather dependent project.', '550e8400-e29b-41d4-a716-446655440016', 600.00, 900.00, 'low', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-03-01', '2024-03-03', 12, true, 'Stain provided by homeowner', 'Outdoor experience, own equipment', '["https://dwello.com/jobs/deck1.jpg", "https://dwello.com/jobs/deck2.jpg"]', false, '2024-01-18 14:00:00');
+('750e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440001', 'Kitchen Cabinet Painting', 'Need professional to paint 15 kitchen cabinets. All prep work will be done by homeowner. Looking for high-quality finish with attention to detail.', '550e8400-e29b-41d4-a716-446655440011', 800.00, 1200.00, 'medium', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-02-01', '2024-02-05', 16, true, 'Homeowner will provide paint and supplies', 'Must be licensed and insured, 3+ years experience', '["https://bluecollab.ai/jobs/kitchen1.jpg", "https://bluecollab.ai/jobs/kitchen2.jpg"]', false, '2024-01-15 10:00:00'),
+('750e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440001', 'Bathroom Plumbing Repair', 'Leaky faucet and running toilet need immediate attention. Prefer same-day service if possible.', '550e8400-e29b-41d4-a716-446655440012', 200.00, 400.00, 'urgent', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-01-20', '2024-01-20', 4, false, 'Contractor provides parts', 'Licensed plumber, emergency availability', '["https://bluecollab.ai/jobs/bathroom1.jpg"]', true, '2024-01-20 08:00:00'),
+('750e8400-e29b-41d4-a716-446655440003', '650e8400-e29b-41d4-a716-446655440001', 'Deck Staining Project', 'Large composite deck needs professional staining. Approximately 400 sq ft. Weather dependent project.', '550e8400-e29b-41d4-a716-446655440016', 600.00, 900.00, 'low', 'open', '750e8400-e29b-41d4-a716-446655440001', '2024-03-01', '2024-03-03', 12, true, 'Stain provided by homeowner', 'Outdoor experience, own equipment', '["https://bluecollab.ai/jobs/deck1.jpg", "https://bluecollab.ai/jobs/deck2.jpg"]', false, '2024-01-18 14:00:00');
 
 -- Job Requirements
 INSERT INTO job_requirements (job_id, requirement_type, requirement_value, is_mandatory) VALUES

@@ -128,7 +128,7 @@ const serviceCategories = [
     _id: ObjectId(),
     name: 'Home Services',
     description: 'General home maintenance and repair services',
-    iconUrl: 'https://dwello.com/icons/home.svg',
+    iconUrl: 'https://bluecollab.ai/icons/home.svg',
     isActive: true,
     sortOrder: 1,
     subcategories: [
@@ -147,7 +147,7 @@ const serviceCategories = [
     _id: ObjectId(),
     name: 'Home Financing',
     description: 'Mortgages, refinancing, and home loans',
-    iconUrl: 'https://dwello.com/icons/finance.svg',
+    iconUrl: 'https://bluecollab.ai/icons/finance.svg',
     isActive: true,
     sortOrder: 2,
     subcategories: [
@@ -162,7 +162,7 @@ const serviceCategories = [
     _id: ObjectId(),
     name: 'Home Insurance',
     description: 'Property and liability insurance',
-    iconUrl: 'https://dwello.com/icons/insurance.svg',
+    iconUrl: 'https://bluecollab.ai/icons/insurance.svg',
     isActive: true,
     sortOrder: 3,
     subcategories: [
@@ -177,7 +177,7 @@ const serviceCategories = [
     _id: ObjectId(),
     name: 'Real Estate',
     description: 'Buying, selling, and property management',
-    iconUrl: 'https://dwello.com/icons/real-estate.svg',
+    iconUrl: 'https://bluecollab.ai/icons/real-estate.svg',
     isActive: true,
     sortOrder: 4,
     subcategories: [
@@ -325,7 +325,7 @@ print('✅ TTL indexes created for data retention');
 // Sample Admin User
 const adminUser = {
   _id: ObjectId(),
-  email: 'admin@dwello.com',
+  email: 'admin@bluecollab.ai',
   passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzKz2K', // password: admin123
   firstName: 'Admin',
   lastName: 'User',
@@ -358,7 +358,7 @@ print('✅ Admin user created');
 
 print('🎉 Dwello MongoDB initialization completed successfully!');
 print('📊 Database: dwello');
-print('👤 Admin user: admin@dwello.com');
+print('👤 Admin user: admin@bluecollab.ai');
 print('🔑 Admin password: admin123');
 print('🌐 MongoDB Express: http://localhost:8081');
 print('🔴 Redis Commander: http://localhost:8082');

@@ -30,7 +30,7 @@ async function testDatabase() {
     // Test 3: Create a test user
     console.log('\n3. Creating test user...');
     const testUser = {
-      email: 'test@dwello.com',
+      email: 'test@bluecollab.ai',
       passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KzKz2K', // password: admin123
       firstName: 'John',
       lastName: 'Doe',
@@ -77,7 +77,7 @@ async function testDatabase() {
 
     // Test 4: Query the test user
     console.log('\n4. Querying test user...');
-    const foundUser = await usersCollection.findOne({ email: 'test@dwello.com' });
+    const foundUser = await usersCollection.findOne({ email: 'test@bluecollab.ai' });
     if (foundUser) {
       console.log('✅ Test user found:');
       console.log('   - Name:', foundUser.firstName, foundUser.lastName);

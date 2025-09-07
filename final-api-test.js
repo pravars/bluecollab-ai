@@ -130,7 +130,7 @@ async function finalApiTest() {
     console.log('\n✏️ UPDATE OPERATIONS');
     console.log('-'.repeat(30));
     const updateResult = await usersCollection.updateOne(
-      { email: 'homeowner@dwello.com' },
+      { email: 'homeowner@bluecollab.ai' },
       { 
         $set: { 
           'profile.bio': 'Updated bio - Ready for home improvement projects!',
@@ -145,7 +145,7 @@ async function finalApiTest() {
     console.log('-'.repeat(30));
     try {
       await usersCollection.insertOne({
-        email: 'invalid@dwello.com',
+        email: 'invalid@bluecollab.ai',
         // Missing required fields
         userType: 'homeowner'
       });
@@ -174,9 +174,9 @@ async function finalApiTest() {
     console.log('   Password: dwello123');
     
     console.log('\n📝 TEST DATA CREATED:');
-    console.log('   🏠 2 Homeowners (test@dwello.com, homeowner@dwello.com)');
-    console.log('   🔧 1 Service Provider (contractor@dwello.com)');
-    console.log('   👑 1 Admin (admin@dwello.com)');
+    console.log('   🏠 2 Homeowners (test@bluecollab.ai, homeowner@bluecollab.ai)');
+    console.log('   🔧 1 Service Provider (contractor@bluecollab.ai)');
+    console.log('   👑 1 Admin (admin@bluecollab.ai)');
     
     console.log('\n🚀 YOUR DWELLO PLATFORM IS READY!');
     console.log('   - MongoDB database working perfectly');

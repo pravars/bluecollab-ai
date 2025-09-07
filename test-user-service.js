@@ -3,7 +3,7 @@ const http = require('http');
 
 // Test data
 const testUser = {
-  email: 'test@dwello.com',
+  email: 'test@bluecollab.ai',
   password: 'password123',
   firstName: 'John',
   lastName: 'Doe',
@@ -91,7 +91,7 @@ async function testUserService() {
         'Content-Type': 'application/json'
       }
     }, {
-      email: 'test@dwello.com',
+      email: 'test@bluecollab.ai',
       password: 'password123'
     });
     console.log('✅ User Login:', loginResponse.status, loginResponse.data);
